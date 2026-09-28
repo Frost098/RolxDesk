@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/manus", "destination": "/api/manus" },
+    { "source": "/api/venice", "destination": "/api/venice" },
+    { "source": "/api/spotify-refresh", "destination": "/api/spotify-refresh" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    }
+  ]
+}
