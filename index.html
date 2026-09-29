@@ -4,25 +4,24 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>RolxDesk</title>
-<style>body{margin:0;background:#0a0a0a;color:#eee;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh}#s{opacity:.7}</style>
+<style>body{margin:0;background:#0a0a0a;color:#eee;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh}</style>
 </head>
 <body>
 <div id="s">Memuat RolxDesk…</div>
 <script>
 (async function() {
-  const n = 6;
-  let b64 = "";
-  for (let i = 0; i < n; i++) {
-    const r = await fetch("./ui." + i + ".b64");
-    if (!r.ok) throw new Error("Gagal muat ui." + i + ".b64");
-    b64 += await r.text();
-  }
-  const html = new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0)));
+  const r = await fetch("./ui.full.b64gz");
+  if (!r.ok) throw new Error("Gagal muat UI payload");
+  const b64 = (await r.text()).trim();
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const ds = new DecompressionStream("gzip");
+  const stream = new Blob([bin]).stream().pipeThrough(ds);
+  const html = await new Response(stream).text();
   document.open();
   document.write(html);
   document.close();
 })().catch(e => {
-  document.getElementById("s").textContent = "Gagal muat UI: " + e.message;
+  document.getElementById("s").textContent = "Gagal: " + e.message + " — coba Chrome/Firefox";
 });
 </script>
 </body>
