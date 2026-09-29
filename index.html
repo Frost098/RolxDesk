@@ -10,11 +10,11 @@
 <div id="s">Memuat RolxDesk…</div>
 <script>
 (async function() {
-  const parts = ["ui.a.b64gz", "ui.b.b64gz"];
+  const n = 8;
   let b64 = "";
-  for (const p of parts) {
-    const r = await fetch("./" + p);
-    if (!r.ok) throw new Error("Gagal muat " + p);
+  for (let i = 0; i < n; i++) {
+    const r = await fetch("./ui.p" + i + ".b64");
+    if (!r.ok) throw new Error("Gagal muat ui.p" + i + ".b64");
     b64 += (await r.text()).trim();
   }
   const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -25,7 +25,7 @@
   document.write(html);
   document.close();
 })().catch(e => {
-  document.getElementById("s").textContent = "Gagal: " + e.message + " — coba Chrome/Firefox";
+  document.getElementById("s").textContent = "Gagal: " + e.message;
 });
 </script>
 </body>
