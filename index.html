@@ -20,7 +20,10 @@
   const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
   const ds = new DecompressionStream("gzip");
   const stream = new Blob([bin]).stream().pipeThrough(ds);
-  const html = await new Response(stream).text();
+  let html = await new Response(stream).text();
+  if (!/extras\.js/.test(html)) {
+    html = html.replace(/<\/body>/i, '<script src="./extras.js"><\/script></body>');
+  }
   document.open();
   document.write(html);
   document.close();
