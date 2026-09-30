@@ -4,23 +4,45 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>RolxDesk</title>
-<style>body{margin:0;background:#0a0a0a;color:#eee;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh}</style>
+<style>body{margin:0;background:#0a0a0a;color:#eee;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;padding:16px;text-align:center}</style>
 </head>
 <body>
 <div id="s">Memuat RolxDesk…</div>
 <script>
 (async function() {
   const n = 8;
+  const status = (m) => { document.getElementById("s").textContent = m; };
   let b64 = "";
   for (let i = 0; i < n; i++) {
-    const r = await fetch("./ui.p" + i + ".b64");
-    if (!r.ok) throw new Error("Gagal muat ui.p" + i + ".b64");
-    b64 += (await r.text()).trim();
+    status("Memuat ui.p" + i + ".b64…");
+    const r = await fetch("./ui.p" + i + ".b64?v=" + Date.now());
+    if (!r.ok) throw new Error("Gagal muat ui.p" + i + ".b64 (HTTP " + r.status + ")");
+    const chunk = (await r.text()).replace(/\s+/g, "");
+    if (!chunk) throw new Error("ui.p" + i + ".b64 kosong");
+    if (!/^[A-Za-z0-9+/]+=*$/.test(chunk)) throw new Error("ui.p" + i + ".b64 bukan base64 valid");
+    b64 += chunk;
   }
-  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  const ds = new DecompressionStream("gzip");
-  const stream = new Blob([bin]).stream().pipeThrough(ds);
-  let html = await new Response(stream).text();
+  status("Decode… (" + b64.length + " chars)");
+  if (b64.length % 4 !== 0) {
+    b64 += "=".repeat((4 - (b64.length % 4)) % 4);
+  }
+  let bin;
+  try {
+    const raw = atob(b64);
+    bin = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+  } catch (e) {
+    throw new Error("atob gagal — base64 rusak (" + b64.length + " chars). Coba hard refresh.");
+  }
+  status("Decompress gzip…");
+  let html;
+  try {
+    const ds = new DecompressionStream("gzip");
+    const stream = new Blob([bin]).stream().pipeThrough(ds);
+    html = await new Response(stream).text();
+  } catch (e) {
+    throw new Error("gzip gagal — chunk tidak utuh. Hard refresh atau redeploy.");
+  }
   if (!/extras\.js/.test(html)) {
     html = html.replace(/<\/body>/i, '<script src="./extras.js"><\/script></body>');
   }
@@ -29,6 +51,7 @@
   document.close();
 })().catch(e => {
   document.getElementById("s").textContent = "Gagal: " + e.message;
+  console.error(e);
 });
 </script>
 </body>
