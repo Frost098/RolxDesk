@@ -1,6 +1,7 @@
-/* RolxDesk extras v4.1 — image gen fix, less sticky memory, cleaner errors */
+/* RolxDesk extras v4.2 — safe-area, no-freeze, timeouts, research soft-fail */
 (function () {
-  if (window.__RD_EXTRAS_V41__) return;
+  if (window.__RD_EXTRAS_V42__) return;
+  window.__RD_EXTRAS_V42__ = true;
   window.__RD_EXTRAS_V41__ = true;
   window.__RD_EXTRAS_V4__ = true;
   window.__RD_EXTRAS__ = true;
@@ -18,12 +19,67 @@
     return n;
   }
 
+  function withTimeout(promise, ms, label) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var t = setTimeout(function () {
+        if (done) return;
+        done = true;
+        reject(new Error((label || "op") + " timeout " + ms + "ms"));
+      }, ms || 25000);
+      promise.then(function (v) {
+        if (done) return;
+        done = true;
+        clearTimeout(t);
+        resolve(v);
+      }, function (e) {
+        if (done) return;
+        done = true;
+        clearTimeout(t);
+        reject(e);
+      });
+    });
+  }
+
+  function unlockSend() {
+    try {
+      if (window.state) {
+        window.state.isStreaming = false;
+        window.state._sendLock = false;
+      }
+      var btn = document.getElementById("sendBtn");
+      if (btn) btn.disabled = false;
+      if (typeof setActivity === "function") setActivity("Siap", "");
+      if (typeof clearLiveStatus === "function") clearLiveStatus();
+    } catch (e) {}
+  }
+
   function injectMobileCSS() {
     if ($("#rd-extras-css")) return;
     var s = document.createElement("style");
     s.id = "rd-extras-css";
-    s.textContent = "@media(max-width:720px){.multi-mode-bar{max-height:30vh!important;overflow:hidden!important}.multi-mode-bar #multiModelChecks,#multiModelChecks{max-height:18vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch}.multi-chip{font-size:.65rem!important;padding:4px 8px!important}.messages{padding-bottom:100px!important;min-height:30vh!important}}#rd-yt{bottom:72px!important}";
+    s.textContent = [
+      "html, body { padding-top: env(safe-area-inset-top, 0px); }",
+      ".chat-header, .main > header, header.chat-header, .topbar {",
+      "  padding-top: max(8px, env(safe-area-inset-top, 0px)) !important;",
+      "}",
+      "@media (max-width: 720px) {",
+      "  .chat-header { padding-top: max(10px, env(safe-area-inset-top, 0px)) !important; min-height: 48px; }",
+      "  .multi-mode-bar { max-height: 28vh !important; overflow: hidden !important; }",
+      "  .multi-mode-bar #multiModelChecks, #multiModelChecks { max-height: 16vh !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }",
+      "  .multi-chip { font-size: .65rem !important; padding: 4px 8px !important; }",
+      "  .messages { padding-bottom: 110px !important; min-height: 28vh !important; }",
+      "  #rd-yt { bottom: 80px !important; width: min(100vw - 16px, 360px) !important; right: 8px !important; }",
+      "  #rd-peek { bottom: 70px !important; max-height: 28vh !important; }",
+      "}",
+      "#sendBtn:disabled { opacity: 0.55; }",
+      "#userInput { pointer-events: auto !important; }"
+    ].join("\n");
     document.head.appendChild(s);
+    var vp = document.querySelector('meta[name="viewport"]');
+    if (vp && !/viewport-fit=cover/.test(vp.content || "")) {
+      vp.content = (vp.content || "width=device-width, initial-scale=1") + ", viewport-fit=cover";
+    }
   }
 
   function ensurePeek() {
@@ -31,7 +87,7 @@
     if (box) return box;
     box = el("div", { id: "rd-peek" });
     Object.assign(box.style, {
-      position: "fixed", left: "8px", right: "8px", bottom: "8px", maxHeight: "32vh",
+      position: "fixed", left: "8px", right: "8px", bottom: "8px", maxHeight: "28vh",
       overflow: "auto", zIndex: "9999", background: "rgba(12,12,16,.94)", color: "#d8d8e0",
       border: "1px solid #333", borderRadius: "10px", font: "12px/1.4 ui-monospace,monospace",
       padding: "8px 10px", display: "none"
@@ -56,7 +112,7 @@
     box.style.display = "block";
     if (!stay) {
       clearTimeout(window.__rdPeekTimer);
-      window.__rdPeekTimer = setTimeout(function () { box.style.display = "none"; }, 12000);
+      window.__rdPeekTimer = setTimeout(function () { box.style.display = "none"; }, 10000);
     }
   };
   window.rdStatus = function (msg) {
@@ -66,18 +122,16 @@
 
   var TOOL_LAW =
     "\n\n[ROLXDESK TOOL LAW]\n"
-    + "Fokus pada PESAN USER TERAKHIR saja. Jangan mengulang topik lama kecuali user minta.\n"
-    + "JANGAN bilang tidak bisa. JANGAN balas kosong. JANGAN meniru teks error sistem sebagai tag.\n"
-    + "Tag valid HANYA: [[SEARCH: q]] [[BROWSE: url]] [[DOWNLOAD: url]] [[YOUTUBE: q]] [[IMG: prompt]] [[PLAY: lagu]] [[RUN_PY]] [[RUN_JS]] [[CALC: e]] [[WEATHER: kota]]\n"
-    + "URL/domain \u2192 [[BROWSE: https://...]]. Video \u2192 [[YOUTUBE:]]. Lagu \u2192 [[PLAY:]]. Gambar \u2192 [[IMG: English prompt]].\n"
-    + "Jangan keluarkan tag palsu atau meniru pesan error.\n";
+    + "Fokus PESAN USER TERAKHIR saja. Jangan mengulang topik lama.\n"
+    + "JANGAN bilang tidak bisa. JANGAN balas kosong. JANGAN meniru teks error sebagai tag.\n"
+    + "Tag: [[SEARCH: q]] [[BROWSE: url]] [[DOWNLOAD: url]] [[YOUTUBE: q]] [[IMG: prompt]] [[PLAY: lagu]] [[RUN_PY]] [[RUN_JS]] [[CALC: e]] [[WEATHER: kota]]\n"
+    + "Gambar=[[IMG:]]. Video=[[YOUTUBE:]]. Lagu=[[PLAY:]]. Situs=[[BROWSE:]].\n";
 
   function patchContinuity() {
     try {
-      if (typeof CONTINUITY === "string" && CONTINUITY.indexOf("TOOL LAW") === -1) CONTINUITY += TOOL_LAW;
-      else if (typeof CONTINUITY === "string" && CONTINUITY.indexOf("PESAN USER TERAKHIR") === -1) CONTINUITY += TOOL_LAW;
+      if (typeof CONTINUITY === "string" && CONTINUITY.indexOf("PESAN USER TERAKHIR") === -1) CONTINUITY += TOOL_LAW;
     } catch (e) {}
-    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd41) {
+    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd42) {
       var orig = window.injectPersona;
       window.injectPersona = function (m) {
         var out = orig(m);
@@ -87,7 +141,7 @@
         }
         return out;
       };
-      window.injectPersona.__rd41 = true;
+      window.injectPersona.__rd42 = true;
     }
   }
 
@@ -130,55 +184,60 @@
       var song = u.replace(/.*(?:putar|play)\s+(?:lagu|musik|song|music)?\s*/i, "").trim() || "lofi";
       out += "\n[[PLAY: " + song.slice(0, 80) + "]]\n";
     }
-    if (/(research|cari\s+(berita|info|data)|search\b|google\b)/i.test(u) && !already("SEARCH") && !url && !wantsYoutube(u) && !wantsImage(u)) {
+    if (/(research|cari\s+(berita|info|data)|search\b|google\b|cara\s+)/i.test(u) && !already("SEARCH") && !url && !wantsYoutube(u) && !wantsImage(u)) {
       var q = u.replace(/.*(?:research|cari(?:\s+berita|\s+info)?|search|google)\s*/i, "").replace(/\?+$/, "").trim();
-      if (q.length < 3) q = u.slice(0, 80);
-      out += "\n[[SEARCH: " + q.slice(0, 100) + "]]\n";
+      if (q.length < 3) q = u.slice(0, 100);
+      out += "\n[[SEARCH: " + q.slice(0, 120) + "]]\n";
     }
     return out;
   }
 
   function patchForceTools() {
-    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd41) {
+    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd42) {
       var prev = window.forceToolsFromUser;
       window.forceToolsFromUser = function (ut, at) {
         var base = prev(ut, at);
         if (wantsYoutube(ut)) base = String(base || "").replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
         return forceToolsExpanded(ut, base);
       };
-      window.forceToolsFromUser.__rd41 = true;
+      window.forceToolsFromUser.__rd42 = true;
     } else if (typeof window.forceToolsFromUser !== "function") {
       window.forceToolsFromUser = forceToolsExpanded;
     }
   }
 
   function patchSpotify() {
-    if (typeof window.playSpotify === "function" && !window.playSpotify.__rd41) {
+    if (typeof window.playSpotify === "function" && !window.playSpotify.__rd42) {
       window.playSpotify = async function (query) {
         if (!query) return;
         var q = String(query).trim();
         rdStatus("Spotify: " + q);
         var token = "";
         try {
-          if (typeof ensureSpotifyToken === "function") token = await ensureSpotifyToken();
+          if (typeof ensureSpotifyToken === "function") token = await withTimeout(ensureSpotifyToken(), 12000, "spotify-token");
           else token = (window.state && window.state.keys && window.state.keys.spotify) || localStorage.getItem("rd_spotify") || "";
         } catch (e) {
           rdPeek("Spotify token", String(e.message || e), true);
-          if (typeof showToast === "function") showToast("Spotify token: " + (e.message || e), "error");
+          if (typeof showToast === "function") showToast("Spotify: " + (e.message || e), "error");
+          unlockSend();
           return;
         }
         token = String(token || "").replace(/^Bearer\s+/i, "");
         if (!token) {
-          if (typeof showToast === "function") showToast("Isi Spotify Access/Refresh Token di Connector", "error");
+          if (typeof showToast === "function") showToast("Isi Spotify token di Connector (403 = token invalid/scope)", "error");
+          unlockSend();
           return;
         }
         try {
           var data;
-          if (typeof fetchSpotifyApi === "function") data = await fetchSpotifyApi("v1/search?type=track&limit=1&q=" + encodeURIComponent(q), "GET");
-          else {
-            var res = await fetch("https://api.spotify.com/v1/search?type=track&limit=1&q=" + encodeURIComponent(q), { headers: { Authorization: "Bearer " + token } });
+          if (typeof fetchSpotifyApi === "function") {
+            data = await withTimeout(fetchSpotifyApi("v1/search?type=track&limit=1&q=" + encodeURIComponent(q), "GET"), 15000, "spotify-search");
+          } else {
+            var res = await withTimeout(fetch("https://api.spotify.com/v1/search?type=track&limit=1&q=" + encodeURIComponent(q), {
+              headers: { Authorization: "Bearer " + token }
+            }), 15000, "spotify-search");
             data = await res.json();
-            if (res.status === 403) throw new Error("403 — token kurang scope atau perlu refresh");
+            if (res.status === 403) throw new Error("403 — refresh token / scope kurang. Hubungkan ulang Spotify di Connector.");
             if (!res.ok) throw new Error((data.error && data.error.message) || ("HTTP " + res.status));
           }
           var track = data.tracks && data.tracks.items && data.tracks.items[0];
@@ -201,24 +260,25 @@
           rdPeek("Spotify error", String(e.message || e));
           if (typeof showToast === "function") showToast("Spotify: " + (e.message || e), "error");
         }
+        unlockSend();
       };
-      window.playSpotify.__rd41 = true;
+      window.playSpotify.__rd42 = true;
     }
-    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd41) {
+    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd42) {
       var om = window.maybePlayFromText;
       window.maybePlayFromText = async function (text) {
         if (wantsYoutube(text) || /\[\[YOUTUBE:/i.test(text || "")) return false;
         return om(text);
       };
-      window.maybePlayFromText.__rd41 = true;
+      window.maybePlayFromText.__rd42 = true;
     }
-    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd41) {
+    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd42) {
       var ex = window.extractPlayQuery;
       window.extractPlayQuery = function (text) {
         if (wantsYoutube(text)) return null;
         return ex(text);
       };
-      window.extractPlayQuery.__rd41 = true;
+      window.extractPlayQuery.__rd42 = true;
     }
   }
 
@@ -227,16 +287,16 @@
   async function doBrowse(url, mode) {
     rdStatus((mode === "download" ? "Download " : "Browse ") + url);
     try {
-      var r = await fetch("/api/browse", {
+      var r = await withTimeout(fetch("/api/browse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url, mode: mode || "text" })
-      });
+      }), 20000, "browse");
       var j = await r.json();
       if (!r.ok) return "Error browse: " + (j.error || r.status);
       if (mode === "download") {
         _executed.download = true;
-        return "Download: **" + (j.filename || "file") + "** (" + (j.bytes || "?") + " B)";
+        return "Download: **" + (j.filename || "file") + "**";
       }
       _executed.browse = true;
       return (j.title ? ("**" + j.title + "**\n") : "") + String(j.text || "").slice(0, 12000);
@@ -250,7 +310,7 @@
     if (p) return p;
     p = el("div", { id: "rd-yt" });
     Object.assign(p.style, {
-      position: "fixed", right: "12px", bottom: "72px", width: "min(360px,92vw)",
+      position: "fixed", right: "12px", bottom: "80px", width: "min(360px,92vw)",
       zIndex: "10000", background: "#111", border: "1px solid #333", borderRadius: "12px",
       overflow: "hidden", display: "none"
     });
@@ -290,7 +350,7 @@
     if (title) title.textContent = "YouTube \u00b7 " + String(q).slice(0, 40);
     if (frame) frame.src = "https://www.youtube-nocookie.com/embed?listType=search&list=" + qq;
     panel.style.display = "block";
-    return "\u25b6\ufe0f Cari di mini player: **" + String(q).slice(0, 80) + "**\nBuka: https://www.youtube.com/results?search_query=" + qq;
+    return "\u25b6\ufe0f Cari: **" + String(q).slice(0, 80) + "**\nhttps://www.youtube.com/results?search_query=" + qq;
   }
 
   async function generateImageGemini(prompt) {
@@ -298,62 +358,53 @@
     if (!key) {
       try { key = (JSON.parse(localStorage.getItem("rd_keys") || "{}")).google || ""; } catch (e) {}
     }
-    if (!key) return { error: "Isi Google AI Studio API key di Pengaturan." };
+    if (!key) return { error: "Isi Google API key di Pengaturan." };
     rdStatus("Generate gambar\u2026");
-    var models = [
-      "gemini-3.1-flash-image",
-      "gemini-2.5-flash-image",
-      "gemini-3.1-flash-lite-image",
-      "gemini-3-pro-image"
-    ];
+    var models = ["gemini-3.1-flash-image", "gemini-2.5-flash-image", "gemini-3.1-flash-lite-image"];
     var lastErr = "";
-    var configs = [
-      { responseModalities: ["TEXT", "IMAGE"] },
-      { responseModalities: ["IMAGE"] },
-      { responseModalities: ["Text", "Image"] }
-    ];
     for (var mi = 0; mi < models.length; mi++) {
       var model = models[mi];
-      for (var ci = 0; ci < configs.length; ci++) {
-        try {
-          var url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key);
-          var body = {
-            contents: [{ role: "user", parts: [{ text: "Generate a high quality image: " + prompt }] }],
-            generationConfig: configs[ci]
-          };
-          var res = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-          });
-          var data = await res.json().catch(function () { return {}; });
-          if (!res.ok) {
-            lastErr = (data.error && data.error.message) || ("HTTP " + res.status);
-            if (/not found|not supported/i.test(lastErr)) break;
-            continue;
+      try {
+        var url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key);
+        var body = {
+          contents: [{ role: "user", parts: [{ text: "Generate a high quality image: " + prompt }] }],
+          generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+        };
+        var res = await withTimeout(fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        }), 28000, "img-" + model);
+        var data = await res.json().catch(function () { return {}; });
+        if (!res.ok) {
+          lastErr = (data.error && data.error.message) || ("HTTP " + res.status);
+          if (/quota|rate.limit|billing/i.test(lastErr)) {
+            return { error: "Kuota Gemini habis \u2014 cek billing di AI Studio / Google Cloud." };
           }
-          var parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
-          var texts = [], images = [];
-          for (var i = 0; i < parts.length; i++) {
-            var p = parts[i];
-            if (p.text) texts.push(p.text);
-            var idata = p.inlineData || p.inline_data;
-            if (idata && idata.data) {
-              var mime = idata.mimeType || idata.mime_type || "image/png";
-              images.push("data:" + mime + ";base64," + idata.data);
-            }
-          }
-          if (images.length) {
-            _executed.image = true;
-            return { images: images, text: texts.join("\n").trim(), model: model };
-          }
-          lastErr = model + " tidak mengembalikan gambar";
-        } catch (e) {
-          lastErr = String(e.message || e);
+          if (/not found|not supported/i.test(lastErr)) continue;
+          continue;
         }
+        var parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+        var texts = [], images = [];
+        for (var i = 0; i < parts.length; i++) {
+          var p = parts[i];
+          if (p.text) texts.push(p.text);
+          var idata = p.inlineData || p.inline_data;
+          if (idata && idata.data) {
+            var mime = idata.mimeType || idata.mime_type || "image/png";
+            images.push("data:" + mime + ";base64," + idata.data);
+          }
+        }
+        if (images.length) {
+          _executed.image = true;
+          return { images: images, text: texts.join("\n").trim(), model: model };
+        }
+        lastErr = model + " tanpa gambar";
+      } catch (e) {
+        lastErr = String(e.message || e);
       }
     }
-    return { error: lastErr || "Gagal generate \u2014 cek Google API key & akses model image di AI Studio" };
+    return { error: lastErr || "Gagal generate gambar" };
   }
 
   function showGeneratedImages(images, caption) {
@@ -371,63 +422,49 @@
     wrap.appendChild(bubble);
     box.appendChild(wrap);
     box.scrollTop = box.scrollHeight;
-    try {
-      var session = typeof getActiveSession === "function" ? getActiveSession() : null;
-      if (session) {
-        session.messages.push({
-          role: "assistant",
-          content: caption || "[Gambar di-generate]",
-          images: images.map(function (u) { return { dataUrl: u }; })
-        });
-        if (typeof saveSessions === "function") saveSessions();
-      }
-    } catch (e) {}
   }
 
   async function runExtraTags(content) {
     if (!content) return content;
     var out = content;
     _executed = { youtube: false, download: false, browse: false, image: false };
-
-    var br = [...out.matchAll(/\[\[BROWSE:\s*([^\]]+)\]\]/gi)];
-    for (var i = 0; i < br.length; i++) {
-      var url = br[i][1].trim();
-      if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-      var res = await doBrowse(url, "text");
-      out = out.replace(br[i][0], "\n**Browse (" + url + "):**\n" + res + "\n");
-    }
-    var dl = [...out.matchAll(/\[\[DOWNLOAD:\s*([^\]]+)\]\]/gi)];
-    for (var j = 0; j < dl.length; j++) {
-      var dres = await doBrowse(dl[j][1].trim(), "download");
-      out = out.replace(dl[j][0], "\n" + dres + "\n");
-    }
-    out = out.replace(/\[\[YOUTUBE:\s*([^\]]+)\]\]/gi, function (_, q) {
-      return "\n" + playYoutube(q.trim()) + "\n";
-    });
-
-    var ims = [...out.matchAll(/\[\[IMG:\s*([^\]]+)\]\]/gi)];
-    for (var ii = 0; ii < ims.length; ii++) {
-      var iprompt = ims[ii][1].trim();
-      if (/not found for API|Generate gambar gagal|ModelService/i.test(iprompt)) {
-        out = out.replace(ims[ii][0], "");
-        continue;
+    try {
+      var br = [...out.matchAll(/\[\[BROWSE:\s*([^\]]+)\]\]/gi)];
+      for (var i = 0; i < br.length; i++) {
+        var url = br[i][1].trim();
+        if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+        var res = await doBrowse(url, "text");
+        out = out.replace(br[i][0], "\n**Browse (" + url + "):**\n" + res + "\n");
       }
-      var ires = await generateImageGemini(iprompt);
-      if (ires.images && ires.images.length) {
-        showGeneratedImages(ires.images, ires.text || ("Gambar: " + iprompt.slice(0, 80)));
-        out = out.replace(ims[ii][0], "\n\ud83d\uddbc\ufe0f Gambar siap (" + (ires.model || "gemini") + ").\n");
-      } else {
-        var short = "Generate gambar gagal. Cek Google API key & model image di AI Studio.";
-        rdPeek("IMG error", String(ires.error || "").slice(0, 300), true);
-        out = out.replace(ims[ii][0], "\n\u26a0\ufe0f " + short + "\n");
+      out = out.replace(/\[\[YOUTUBE:\s*([^\]]+)\]\]/gi, function (_, q) {
+        return "\n" + playYoutube(q.trim()) + "\n";
+      });
+      var ims = [...out.matchAll(/\[\[IMG:\s*([^\]]+)\]\]/gi)];
+      for (var ii = 0; ii < ims.length; ii++) {
+        var iprompt = ims[ii][1].trim();
+        if (/not found for API|Generate gambar gagal|ModelService|quota/i.test(iprompt)) {
+          out = out.replace(ims[ii][0], "");
+          continue;
+        }
+        var ires = await generateImageGemini(iprompt);
+        if (ires.images && ires.images.length) {
+          showGeneratedImages(ires.images, ires.text || ("Gambar: " + iprompt.slice(0, 80)));
+          out = out.replace(ims[ii][0], "\n\ud83d\uddbc\ufe0f Gambar siap (" + (ires.model || "gemini") + ").\n");
+        } else {
+          rdPeek("IMG error", String(ires.error || "").slice(0, 280), true);
+          out = out.replace(ims[ii][0], "\n\u26a0\ufe0f Generate gambar gagal (kuota/key/model). Detail di panel Aktivitas.\n");
+        }
       }
+      out = out.replace(/models\/gemini-[^\s]+ is not found[^\n]*/gi, "");
+      out = out.replace(/You exceeded your current quota[^\n]*/gi, "");
+      out = out.replace(/Call ModelService\.ListModels[^\n]*/gi, "");
+    } catch (e) {
+      rdPeek("runExtraTags error", String(e.message || e), true);
     }
-    out = out.replace(/models\/gemini-[^\s]+ is not found[^\n]*/gi, "");
-    out = out.replace(/Call ModelService\.ListModels[^\n]*/gi, "");
     return out.replace(/\n{3,}/g, "\n\n").trim();
   }
 
-  function ensureNonEmpty(content, userHint) {
+  function ensureNonEmpty(content) {
     var s = String(content || "").trim();
     if (s && s !== "(kosong)" && s.length > 2) return s;
     if (_executed.image) return "Gambar di-generate.";
@@ -437,17 +474,40 @@
   }
 
   function patchRunAgentTags() {
-    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd41) {
+    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd42) {
       var orig = window.runAgentTags;
       window.runAgentTags = async function (content) {
-        rdPeek("Agent tags", String(content || "").slice(0, 300), true);
-        var mid = await orig(content);
-        var final = await runExtraTags(mid);
-        return ensureNonEmpty(final, content);
+        try {
+          rdPeek("Agent tags", String(content || "").slice(0, 280), true);
+          var mid = await withTimeout(Promise.resolve(orig(content)), 90000, "agent-tags");
+          var final = await runExtraTags(mid);
+          return ensureNonEmpty(final);
+        } catch (e) {
+          rdPeek("Agent error", String(e.message || e), true);
+          unlockSend();
+          return "Terjadi error tool: " + (e.message || e) + " \u2014 tombol kirim sudah diaktifkan lagi.";
+        } finally {
+          unlockSend();
+        }
       };
-      window.runAgentTags.__rd41 = true;
+      window.runAgentTags.__rd42 = true;
     }
   }
+
+  setInterval(function () {
+    try {
+      if (window.state && (window.state.isStreaming || window.state._sendLock)) {
+        if (!window.__rdLockSince) window.__rdLockSince = Date.now();
+        else if (Date.now() - window.__rdLockSince > 90000) {
+          unlockSend();
+          window.__rdLockSince = 0;
+          rdPeek("Watchdog", "Send unlock setelah 90s hang");
+        }
+      } else {
+        window.__rdLockSince = 0;
+      }
+    } catch (e) {}
+  }, 5000);
 
   function handleSlash(text) {
     var m = String(text || "").trim().match(/^\/(img|image|gambar|song|lagu|music|video|vid)\s+([\s\S]+)/i);
@@ -456,23 +516,18 @@
     if (cmd === "img" || cmd === "image" || cmd === "gambar") {
       return { userText: prompt + "\n\n[[IMG: " + prompt + "]]", inject: "" };
     }
-    if (cmd === "song" || cmd === "lagu" || cmd === "music") {
-      return { userText: prompt, inject: "Buat lirik lagu. Jangan kosong." };
-    }
-    return { userText: prompt, inject: "Buat shot list video." };
+    return { userText: prompt, inject: "" };
   }
 
   function hookComposer() {
     document.querySelectorAll("#userInput, textarea").forEach(function (ta) {
-      if (!ta || ta.__rdSlash41) return;
-      ta.__rdSlash41 = true;
+      if (!ta || ta.__rdSlash42) return;
+      ta.__rdSlash42 = true;
       ta.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           var raw = ta.value != null ? ta.value : ta.innerText;
           var sl = handleSlash(raw);
-          if (sl && ta.value != null) {
-            ta.value = sl.userText + (sl.inject ? ("\n\n[" + sl.inject + "]") : "");
-          }
+          if (sl && ta.value != null) ta.value = sl.userText;
         }
       }, true);
     });
@@ -486,7 +541,8 @@
     patchRunAgentTags();
     hookComposer();
     ensurePeek();
-    rdPeek("RolxDesk extras v4.1", "Image models fixed \u00b7 less sticky memory \u00b7 clean errors");
+    unlockSend();
+    rdPeek("RolxDesk extras v4.2", "Safe-area \u00b7 no-freeze \u00b7 timeout \u00b7 image/quota clean");
   }
   function rebind() {
     injectMobileCSS();
