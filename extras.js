@@ -1,8 +1,7 @@
-/* RolxDesk extras v4.3 — Spotify server search bypasses user token 403 */
+/* RolxDesk extras v4.4 — free music: Spotify embed URL or YouTube fallback */
 (function () {
-  if (window.__RD_EXTRAS_V43__) return;
-  window.__RD_EXTRAS_V43__ = true;
-  window.__RD_EXTRAS_V42__ = true;
+  if (window.__RD_EXTRAS_V44__) return;
+  window.__RD_EXTRAS_V44__ = true;
   window.__RD_EXTRAS_V4__ = true;
   window.__RD_EXTRAS__ = true;
 
@@ -126,7 +125,7 @@
     try {
       if (typeof CONTINUITY === "string" && CONTINUITY.indexOf("PESAN USER TERAKHIR") === -1) CONTINUITY += TOOL_LAW;
     } catch (e) {}
-    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd43) {
+    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd44) {
       var orig = window.injectPersona;
       window.injectPersona = function (m) {
         var out = orig(m);
@@ -136,7 +135,7 @@
         }
         return out;
       };
-      window.injectPersona.__rd43 = true;
+      window.injectPersona.__rd44 = true;
     }
   }
 
@@ -188,120 +187,16 @@
   }
 
   function patchForceTools() {
-    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd43) {
+    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd44) {
       var prev = window.forceToolsFromUser;
       window.forceToolsFromUser = function (ut, at) {
         var base = prev(ut, at);
         if (wantsYoutube(ut)) base = String(base || "").replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
         return forceToolsExpanded(ut, base);
       };
-      window.forceToolsFromUser.__rd43 = true;
+      window.forceToolsFromUser.__rd44 = true;
     } else if (typeof window.forceToolsFromUser !== "function") {
       window.forceToolsFromUser = forceToolsExpanded;
-    }
-  }
-
-  function patchSpotify() {
-    if (typeof window.playSpotify === "function" && !window.playSpotify.__rd43) {
-      window.playSpotify = async function (query) {
-        if (!query) return;
-        var q = String(query).trim();
-        rdStatus("Spotify: " + q);
-        function showEmbed(id, label) {
-          if (typeof showSpotifyEmbed === "function") showSpotifyEmbed(id);
-          else {
-            var wrap = document.getElementById("spotifyEmbedWrap");
-            var iframe = document.getElementById("spotifyEmbed");
-            if (wrap && iframe) {
-              iframe.src = "https://open.spotify.com/embed/track/" + id + "?utm_source=generator&theme=0&autoplay=1";
-              iframe.style.display = "block";
-              iframe.style.height = "152px";
-              wrap.style.display = "flex";
-            }
-          }
-          rdPeek("Spotify", label);
-          if (typeof showToast === "function") showToast("Play: " + label, "success");
-        }
-        // 1) Server search (Client Credentials) — TANPA user token
-        try {
-          var r = await withTimeout(fetch("/api/spotify-search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ q: q })
-          }), 15000, "spotify-server-search");
-          var j = await r.json().catch(function () { return {}; });
-          if (r.ok && j.id) {
-            showEmbed(j.id, (j.name || q) + (j.artists ? (" \u2014 " + j.artists) : ""));
-            unlockSend();
-            return;
-          }
-          rdPeek("Spotify server", String(j.error || r.status), true);
-        } catch (e1) {
-          rdPeek("Spotify server", String(e1.message || e1), true);
-        }
-        // 2) Fallback user token
-        try {
-          var token = "";
-          if (typeof ensureSpotifyToken === "function") token = await withTimeout(ensureSpotifyToken(), 10000, "spotify-token");
-          else token = (window.state && window.state.keys && window.state.keys.spotify) || localStorage.getItem("rd_spotify") || "";
-          token = String(token || "").replace(/^Bearer\s+/i, "");
-          if (!token) throw new Error("Server search gagal & token user kosong. Set SPOTIFY_CLIENT_ID/SECRET di Vercel.");
-          var data;
-          if (typeof fetchSpotifyApi === "function") {
-            data = await withTimeout(fetchSpotifyApi("v1/search?type=track&limit=1&q=" + encodeURIComponent(q), "GET"), 12000, "spotify-user-search");
-          } else {
-            var res = await fetch("https://api.spotify.com/v1/search?type=track&limit=1&q=" + encodeURIComponent(q), {
-              headers: { Authorization: "Bearer " + token }
-            });
-            data = await res.json();
-            if (!res.ok) throw new Error((data.error && data.error.message) || ("HTTP " + res.status));
-          }
-          var track = data.tracks && data.tracks.items && data.tracks.items[0];
-          if (!track) throw new Error("Track tidak ditemukan: " + q);
-          showEmbed(track.id, track.name + " \u2014 " + (track.artists || []).map(function (a) { return a.name; }).join(", "));
-        } catch (e) {
-          rdPeek("Spotify error", String(e.message || e));
-          if (typeof showToast === "function") showToast("Spotify: " + (e.message || e), "error");
-        }
-        unlockSend();
-      };
-      window.playSpotify.__rd43 = true;
-    }
-    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd43) {
-      var om = window.maybePlayFromText;
-      window.maybePlayFromText = async function (text) {
-        if (wantsYoutube(text) || /\[\[YOUTUBE:/i.test(text || "")) return false;
-        return om(text);
-      };
-      window.maybePlayFromText.__rd43 = true;
-    }
-    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd43) {
-      var ex = window.extractPlayQuery;
-      window.extractPlayQuery = function (text) {
-        if (wantsYoutube(text)) return null;
-        return ex(text);
-      };
-      window.extractPlayQuery.__rd43 = true;
-    }
-  }
-
-  var _executed = { youtube: false, download: false, browse: false, image: false };
-
-  async function doBrowse(url, mode) {
-    rdStatus((mode === "download" ? "Download " : "Browse ") + url);
-    try {
-      var r = await withTimeout(fetch("/api/browse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url, mode: mode || "text" })
-      }), 20000, "browse");
-      var j = await r.json();
-      if (!r.ok) return "Error browse: " + (j.error || r.status);
-      if (mode === "download") { _executed.download = true; return "Download: **" + (j.filename || "file") + "**"; }
-      _executed.browse = true;
-      return (j.title ? ("**" + j.title + "**\n") : "") + String(j.text || "").slice(0, 12000);
-    } catch (e) {
-      return "Browse gagal: " + (e.message || e);
     }
   }
 
@@ -339,7 +234,6 @@
     var panel = ensureYoutubePanel();
     var frame = $("#rd-yt-frame");
     var title = $("#rd-yt-title");
-    _executed.youtube = true;
     if (id) {
       if (title) title.textContent = "YouTube \u00b7 " + id;
       if (frame) frame.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
@@ -350,7 +244,97 @@
     if (title) title.textContent = "YouTube \u00b7 " + String(q).slice(0, 40);
     if (frame) frame.src = "https://www.youtube-nocookie.com/embed?listType=search&list=" + qq;
     panel.style.display = "block";
-    return "\u25b6\ufe0f Cari: **" + String(q).slice(0, 80) + "**\nhttps://www.youtube.com/results?search_query=" + qq;
+    return "\u25b6\ufe0f Cari: **" + String(q).slice(0, 80) + "**";
+  }
+
+  function showSpotifyEmbedId(id, label) {
+    if (typeof showSpotifyEmbed === "function") showSpotifyEmbed(id);
+    else {
+      var wrap = document.getElementById("spotifyEmbedWrap");
+      var iframe = document.getElementById("spotifyEmbed");
+      if (wrap && iframe) {
+        iframe.src = "https://open.spotify.com/embed/track/" + id + "?utm_source=generator&theme=0&autoplay=1";
+        iframe.style.display = "block";
+        iframe.style.height = "152px";
+        wrap.style.display = "flex";
+      }
+    }
+    rdPeek("Spotify", label);
+    if (typeof showToast === "function") showToast("Play: " + label, "success");
+  }
+
+  function playMusicFree(q) {
+    var yq = String(q).replace(/^(putar|play)\s+(lagu|musik|song|music)?\s*/i, "").trim() || q;
+    rdPeek("Musik", "Putar gratis via YouTube: " + yq);
+    playYoutube(yq + " official audio");
+    if (typeof showToast === "function") showToast("Putar via YouTube: " + yq, "success");
+  }
+
+  function patchSpotify() {
+    window.playSpotify = async function (query) {
+      if (!query) return;
+      var q = String(query).trim();
+      rdStatus("Musik: " + q);
+      var mTrack = q.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/i) || q.match(/spotify:track:([A-Za-z0-9]+)/i);
+      if (mTrack) {
+        showSpotifyEmbedId(mTrack[1], "Spotify \u00b7 " + mTrack[1]);
+        unlockSend();
+        return;
+      }
+      try {
+        var r = await withTimeout(fetch("/api/spotify-search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ q: q })
+        }), 10000, "spotify-server-search");
+        var j = await r.json().catch(function () { return {}; });
+        if (r.ok && j.id) {
+          showSpotifyEmbedId(j.id, (j.name || q) + (j.artists ? (" \u2014 " + j.artists) : ""));
+          unlockSend();
+          return;
+        }
+      } catch (e1) {}
+      playMusicFree(q);
+      unlockSend();
+    };
+    window.playSpotify.__rd44 = true;
+
+    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd44) {
+      var om = window.maybePlayFromText;
+      window.maybePlayFromText = async function (text) {
+        if (wantsYoutube(text) || /\[\[YOUTUBE:/i.test(text || "")) return false;
+        return om(text);
+      };
+      window.maybePlayFromText.__rd44 = true;
+    }
+    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd44) {
+      var ex = window.extractPlayQuery;
+      window.extractPlayQuery = function (text) {
+        if (wantsYoutube(text)) return null;
+        return ex(text);
+      };
+      window.extractPlayQuery.__rd44 = true;
+    }
+  }
+
+  var _executed = { youtube: false, download: false, browse: false, image: false };
+
+  async function doBrowse(url, mode) {
+    rdStatus((mode === "download" ? "Download " : "Browse ") + url);
+    try {
+      var r = await withTimeout(fetch("/api/browse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url, mode: mode || "text" })
+      }), 20000, "browse");
+      var j = await r.json();
+      if (!r.ok) return "Error browse: " + (j.error || r.status);
+      if (mode === "download") { _executed.download = true; return "Download: **" + (j.filename || "file") + "**"; }
+      _executed.browse = true;
+      return (j.title ? ("**" + j.title + "**\n") : "") + String(j.text || "").slice(0, 12000);
+    } catch (e) {
+      return "Browse gagal: " + (e.message || e);
+    }
   }
 
   async function generateImageGemini(prompt) {
@@ -426,11 +410,21 @@
         var res = await doBrowse(url, "text");
         out = out.replace(br[i][0], "\n**Browse (" + url + "):**\n" + res + "\n");
       }
-      out = out.replace(/\[\[YOUTUBE:\s*([^\]]+)\]\]/gi, function (_, q) { return "\n" + playYoutube(q.trim()) + "\n"; });
+      out = out.replace(/\[\[YOUTUBE:\s*([^\]]+)\]\]/gi, function (_, q) {
+        _executed.youtube = true;
+        return "\n" + playYoutube(q.trim()) + "\n";
+      });
+      out = out.replace(/\[\[PLAY:\s*([^\]]+)\]\]/gi, function (_, q) {
+        try { window.playSpotify(q.trim()); } catch (e) { playMusicFree(q.trim()); }
+        return "\n\ud83c\udfb5 Putar: **" + q.trim() + "**\n";
+      });
       var ims = [...out.matchAll(/\[\[IMG:\s*([^\]]+)\]\]/gi)];
       for (var ii = 0; ii < ims.length; ii++) {
         var iprompt = ims[ii][1].trim();
-        if (/not found for API|Generate gambar gagal|ModelService|quota/i.test(iprompt)) { out = out.replace(ims[ii][0], ""); continue; }
+        if (/not found for API|Generate gambar gagal|ModelService|quota/i.test(iprompt)) {
+          out = out.replace(ims[ii][0], "");
+          continue;
+        }
         var ires = await generateImageGemini(iprompt);
         if (ires.images && ires.images.length) {
           showGeneratedImages(ires.images, ires.text || ("Gambar: " + iprompt.slice(0, 80)));
@@ -456,7 +450,7 @@
   }
 
   function patchRunAgentTags() {
-    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd43) {
+    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd44) {
       var orig = window.runAgentTags;
       window.runAgentTags = async function (content) {
         try {
@@ -470,7 +464,7 @@
           return "Terjadi error tool: " + (e.message || e);
         } finally { unlockSend(); }
       };
-      window.runAgentTags.__rd43 = true;
+      window.runAgentTags.__rd44 = true;
     }
   }
 
@@ -491,13 +485,14 @@
     if (!m) return null;
     var cmd = m[1].toLowerCase(), prompt = m[2].trim();
     if (cmd === "img" || cmd === "image" || cmd === "gambar") return { userText: prompt + "\n\n[[IMG: " + prompt + "]]", inject: "" };
+    if (cmd === "song" || cmd === "lagu" || cmd === "music") return { userText: prompt + "\n\n[[PLAY: " + prompt + "]]", inject: "" };
     return { userText: prompt, inject: "" };
   }
 
   function hookComposer() {
     document.querySelectorAll("#userInput, textarea").forEach(function (ta) {
-      if (!ta || ta.__rdSlash43) return;
-      ta.__rdSlash43 = true;
+      if (!ta || ta.__rdSlash44) return;
+      ta.__rdSlash44 = true;
       ta.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           var raw = ta.value != null ? ta.value : ta.innerText;
@@ -509,15 +504,28 @@
   }
 
   function boot() {
-    injectMobileCSS(); patchContinuity(); patchForceTools(); patchSpotify(); patchRunAgentTags();
-    hookComposer(); ensurePeek(); unlockSend();
-    rdPeek("RolxDesk extras v4.3", "Spotify server search \u00b7 no user-token 403");
+    injectMobileCSS();
+    patchContinuity();
+    patchForceTools();
+    patchSpotify();
+    patchRunAgentTags();
+    hookComposer();
+    ensurePeek();
+    unlockSend();
+    rdPeek("RolxDesk extras v4.4", "Musik gratis: Spotify URL embed / YouTube fallback");
   }
   function rebind() {
-    injectMobileCSS(); patchContinuity(); patchForceTools(); patchSpotify(); patchRunAgentTags(); hookComposer();
+    injectMobileCSS();
+    patchContinuity();
+    patchForceTools();
+    patchSpotify();
+    patchRunAgentTags();
+    hookComposer();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else setTimeout(boot, 200);
-  setTimeout(rebind, 800); setTimeout(rebind, 2000); setTimeout(rebind, 5000);
+  setTimeout(rebind, 800);
+  setTimeout(rebind, 2000);
+  setTimeout(rebind, 5000);
 })();
