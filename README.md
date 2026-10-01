@@ -1,86 +1,67 @@
 # RolxDesk (RD)
 
-**Open-source multi-provider AI chat desk** — single deploy, multi-model, tools, voice, sandbox.
+**Open-source multi-provider AI chat desk** — multi-model, tools, voice, sandbox.
 
-Live: [rolxdesk.vercel.app](https://rolxdesk.vercel.app)
+- **Live:** https://rolxdesk.vercel.app
+- **Full source map (raw links):** [SOURCE.md](./SOURCE.md)
+- **Repo:** https://github.com/Frost098/RolxDesk (public)
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FFrost098%2FRolxDesk)
 
-## Apa itu RolxDesk?
+## For humans & AI crawlers
 
-RolxDesk adalah chat UI + API proxy yang jalan di **Vercel** (atau static host + serverless).
-Satu repo, deploy sekali, pakai model dari:
+GitHub HTML pages are often blocked or empty for external AI (Gemini, ChatGPT).
+Use **raw** URLs instead, listed in [SOURCE.md](./SOURCE.md).
 
-- OpenRouter (termasuk `:free`)
+Examples:
+
+```
+https://raw.githubusercontent.com/Frost098/RolxDesk/main/extras.js
+https://raw.githubusercontent.com/Frost098/RolxDesk/main/api/yt-search.js
+https://raw.githubusercontent.com/Frost098/RolxDesk/main/README.md
+```
+
+## What is RolxDesk?
+
+Chat UI + Vercel API proxies. One deploy, models from:
+
+- OpenRouter (including free)
 - Google AI Studio / Gemini
-- Venice
-- Manus
-- Custom / 9router (OpenAI-compatible)
+- Venice, Manus, custom / 9router (OpenAI-compatible)
 
-Fitur inti:
+| Area | Features |
+|------|----------|
+| Chat | Sessions, memory, markdown |
+| Modes | Normal · Debate · Teamwork |
+| Tools | Browse, search, YouTube mini player, Working panel |
+| Code | Python (Pyodide) + JS sandbox |
+| Media | `/img` Gemini, `/song` `/video` |
+| Connectors | Spotify, GitHub, Vercel tokens in Settings |
 
-| Area | Fitur |
-|------|--------|
-| Chat | Sesi, rename, memory, markdown, file card |
-| Mode | Normal \u00b7 Debat \u00b7 Teamwork (multi-model chips) |
-| Tools | Browse, download, search, YouTube mini player |
-| Code | Python (Pyodide) + JS sandbox, bisa di-peek |
-| Voice | SpeechRecognition + TTS (Fish / speechSynthesis) |
-| Vision | Upload gambar + bridge Gemini |
-| Slash | `/img` `/song` `/video` (via `extras.js`) |
-| Konektor | Spotify OAuth, GitHub label, custom base URL |
+## Deploy
 
-## Install / Deploy (seperti Download dari Vercel)
-
-### Opsi A — Deploy ke Vercel (paling gampang)
-
-1. Klik tombol **Deploy with Vercel** di atas
-2. Atau: [vercel.com/new](https://vercel.com/new) → Import `Frost098/RolxDesk`
-3. Set env (opsional, sesuai provider):
-
-```
-OPENROUTER_API_KEY=
-GOOGLE_AI_API_KEY=
-SPOTIFY_CLIENT_ID=
-SPOTIFY_CLIENT_SECRET=
-```
-
-4. Deploy → URL `https://xxx.vercel.app`
-
-### Opsi B — Clone lokal
+1. Deploy button above, or import `Frost098/RolxDesk` on Vercel
+2. Optional env: `OPENROUTER_API_KEY`, `GOOGLE_AI_API_KEY`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`
+3. Open the Vercel URL
 
 ```bash
 git clone https://github.com/Frost098/RolxDesk.git
 cd RolxDesk
-npx vercel dev
+npx vercel
 ```
 
-### Opsi C — Fork lalu Deploy
-
-Fork repo ini → Vercel pilih fork kamu → Deploy.
-Update = `git pull` di fork + redeploy.
-
-## Struktur
+## Layout
 
 ```
-index.html          → loader kecil (fetch ui.p0…p7 + gunzip)
-ui.p0.b64 … p7.b64  → UI penuh (gzip+base64 chunk)
-extras.js           → fitur modular (/img /song /video, peek)
-api/                → serverless proxies
-vercel.json
+index.html     loader (ui.p0…p7 chunks)
+extras.js      modular tools (v4.7+) — Working panel, YT, img, anti-sticky
+api/           serverless: browse, yt-search, spotify-search, …
+ui.p*.b64      gzip+base64 UI chunks
+SOURCE.md      raw link map for AI / offline reading
 ```
 
-Fitur baru taruh di `extras.js` supaya tidak perlu upload UI 170KB lagi.
+New features go in `extras.js` so the large UI blob does not need re-upload.
 
-## Slash
+## License
 
-```
-/img sunset over jakarta
-/song lo-fi hujan
-/video drone pantai senja
-```
-
-## Lisensi
-
-Open source — pakai, fork, modifikasi bebas.
-Credit: RolxDesk / Frost098
+Open source — fork and modify freely. Credit: RolxDesk / Frost098
