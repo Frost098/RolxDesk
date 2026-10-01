@@ -1,8 +1,7 @@
-/* RolxDesk extras v4.5 — yt-search by ID + unlock send, no freeze */
+/* RolxDesk extras v4.6 — Grok-style working panel + valid YT IDs + no lock */
 (function () {
-  if (window.__RD_EXTRAS_V45__) return;
-  window.__RD_EXTRAS_V45__ = true;
-  window.__RD_EXTRAS_V4__ = true;
+  if (window.__RD_EXTRAS_V46__) return;
+  window.__RD_EXTRAS_V46__ = true;
   window.__RD_EXTRAS__ = true;
 
   function $(s, r) { return (r || document).querySelector(s); }
@@ -24,8 +23,8 @@
       var t = setTimeout(function () {
         if (done) return;
         done = true;
-        reject(new Error((label || "op") + " timeout " + ms + "ms"));
-      }, ms || 25000);
+        reject(new Error((label || "op") + " timeout"));
+      }, ms || 20000);
       promise.then(function (v) {
         if (done) return;
         done = true;
@@ -42,13 +41,99 @@
 
   function unlockSend() {
     try {
-      if (window.state) { window.state.isStreaming = false; window.state._sendLock = false; }
+      if (window.state) {
+        window.state.isStreaming = false;
+        window.state._sendLock = false;
+      }
       var btn = document.getElementById("sendBtn");
-      if (btn) btn.disabled = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.removeAttribute("disabled");
+      }
       if (typeof setActivity === "function") setActivity("Siap", "");
       if (typeof clearLiveStatus === "function") clearLiveStatus();
     } catch (e) {}
   }
+
+  var _steps = [];
+  function ensureWorkPanel() {
+    var box = $("#rd-work");
+    if (box) return box;
+    box = el("div", { id: "rd-work" });
+    Object.assign(box.style, {
+      position: "fixed", left: "10px", right: "10px", bottom: "72px",
+      maxHeight: "38vh", overflow: "auto", zIndex: "10001",
+      background: "rgba(18,18,22,.97)", color: "#e8e8ee",
+      border: "1px solid #3a3a48", borderRadius: "14px",
+      font: "13px/1.45 system-ui,sans-serif", padding: "10px 12px",
+      display: "none", boxShadow: "0 8px 32px rgba(0,0,0,.45)"
+    });
+    var head = el("div");
+    head.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px";
+    var left = el("div");
+    left.style.cssText = "display:flex;align-items:center;gap:8px";
+    var spin = el("span", { id: "rd-work-spin" }, "\u25cf");
+    spin.style.cssText = "color:#7c6af7;animation:rdPulse 1s infinite";
+    left.appendChild(spin);
+    left.appendChild(el("strong", { id: "rd-work-title" }, "Working"));
+    head.appendChild(left);
+    var close = el("button", { type: "button" }, "\u00d7");
+    close.style.cssText = "background:none;border:0;color:#aaa;font-size:18px;cursor:pointer;line-height:1";
+    close.onclick = function () { box.style.display = "none"; };
+    head.appendChild(close);
+    box.appendChild(head);
+    box.appendChild(el("div", { id: "rd-work-steps" }, ""));
+    var style = document.createElement("style");
+    style.textContent = "@keyframes rdPulse{0%,100%{opacity:1}50%{opacity:.35}}#rd-work-steps .rd-step{padding:4px 0;border-bottom:1px solid #2a2a34;color:#c8c8d0;font-size:12px}#rd-work-steps .rd-step b{color:#a89cff}";
+    document.head.appendChild(style);
+    document.body.appendChild(box);
+    return box;
+  }
+
+  function workStart(title) {
+    _steps = [];
+    var box = ensureWorkPanel();
+    var t = $("#rd-work-title");
+    if (t) t.textContent = title || "Working";
+    var spin = $("#rd-work-spin");
+    if (spin) spin.style.display = "inline";
+    var body = $("#rd-work-steps");
+    if (body) body.innerHTML = "";
+    box.style.display = "block";
+  }
+  function workStep(label, detail) {
+    _steps.push({ label: label, detail: detail || "" });
+    var body = $("#rd-work-steps");
+    if (!body) return;
+    var row = el("div", { class: "rd-step" });
+    row.innerHTML = "<b>" + String(label).replace(/</g, "<") + "</b>" +
+      (detail ? (" \u00b7 " + String(detail).replace(/</g, "<").slice(0, 160)) : "");
+    body.appendChild(row);
+    body.scrollTop = body.scrollHeight;
+    ensureWorkPanel().style.display = "block";
+  }
+  function workDone(title) {
+    var t = $("#rd-work-title");
+    if (t) t.textContent = title || "Selesai";
+    var spin = $("#rd-work-spin");
+    if (spin) spin.style.display = "none";
+    clearTimeout(window.__rdWorkHide);
+    window.__rdWorkHide = setTimeout(function () {
+      var box = $("#rd-work");
+      if (box) box.style.display = "none";
+    }, 8000);
+  }
+
+  window.rdPeek = function (title, body) {
+    workStart(title || "Aktivitas");
+    String(body || "").split("\n").forEach(function (line) {
+      if (line.trim()) workStep(line.trim().slice(0, 40), line.trim().length > 40 ? line.trim().slice(40) : "");
+    });
+  };
+  window.rdStatus = function (msg) {
+    if (typeof setLiveStatus === "function") try { setLiveStatus(msg); } catch (e) {}
+    workStep("status", msg);
+  };
 
   function injectMobileCSS() {
     if ($("#rd-extras-css")) return;
@@ -56,86 +141,39 @@
     s.id = "rd-extras-css";
     s.textContent = [
       "html, body { padding-top: env(safe-area-inset-top, 0px); }",
-      ".chat-header, .main > header, header.chat-header, .topbar { padding-top: max(8px, env(safe-area-inset-top, 0px)) !important; }",
+      ".chat-header, .main > header { padding-top: max(8px, env(safe-area-inset-top, 0px)) !important; }",
       "@media (max-width: 720px) {",
-      "  .chat-header { padding-top: max(10px, env(safe-area-inset-top, 0px)) !important; min-height: 48px; }",
       "  .multi-mode-bar { max-height: 28vh !important; overflow: hidden !important; }",
-      "  .multi-mode-bar #multiModelChecks, #multiModelChecks { max-height: 16vh !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }",
-      "  .multi-chip { font-size: .65rem !important; padding: 4px 8px !important; }",
-      "  .messages { padding-bottom: 110px !important; min-height: 28vh !important; }",
-      "  #rd-yt { bottom: 80px !important; width: min(100vw - 16px, 360px) !important; right: 8px !important; }",
-      "  #rd-peek { bottom: 70px !important; max-height: 28vh !important; }",
+      "  .multi-mode-bar #multiModelChecks, #multiModelChecks { max-height: 16vh !important; overflow-y: auto !important; }",
+      "  .messages { padding-bottom: 120px !important; }",
+      "  #rd-yt { bottom: 88px !important; right: 8px !important; width: min(100vw - 16px, 360px) !important; }",
+      "  #rd-work { bottom: 80px !important; max-height: 32vh !important; }",
       "}",
       "#sendBtn:disabled { opacity: 0.55; }",
       "#userInput { pointer-events: auto !important; }"
     ].join("\n");
     document.head.appendChild(s);
-    var vp = document.querySelector('meta[name="viewport"]');
-    if (vp && !/viewport-fit=cover/.test(vp.content || "")) {
-      vp.content = (vp.content || "width=device-width, initial-scale=1") + ", viewport-fit=cover";
-    }
   }
-
-  function ensurePeek() {
-    var box = $("#rd-peek");
-    if (box) return box;
-    box = el("div", { id: "rd-peek" });
-    Object.assign(box.style, {
-      position: "fixed", left: "8px", right: "8px", bottom: "8px", maxHeight: "28vh",
-      overflow: "auto", zIndex: "9999", background: "rgba(12,12,16,.94)", color: "#d8d8e0",
-      border: "1px solid #333", borderRadius: "10px", font: "12px/1.4 ui-monospace,monospace",
-      padding: "8px 10px", display: "none"
-    });
-    var head = el("div");
-    head.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-bottom:6px";
-    head.appendChild(el("strong", { id: "rd-peek-title" }, "Aktivitas"));
-    var close = el("button", { type: "button" }, "\u00d7");
-    close.style.cssText = "background:none;border:0;color:#aaa;font-size:16px;cursor:pointer";
-    close.onclick = function () { box.style.display = "none"; };
-    head.appendChild(close);
-    box.appendChild(head);
-    box.appendChild(el("pre", { id: "rd-peek-body" }, ""));
-    document.body.appendChild(box);
-    return box;
-  }
-  window.rdPeek = function (title, body, stay) {
-    var box = ensurePeek();
-    var t = $("#rd-peek-title"), b = $("#rd-peek-body");
-    if (t) t.textContent = title || "Aktivitas";
-    if (b) b.textContent = body || "";
-    box.style.display = "block";
-    if (!stay) {
-      clearTimeout(window.__rdPeekTimer);
-      window.__rdPeekTimer = setTimeout(function () { box.style.display = "none"; }, 10000);
-    }
-  };
-  window.rdStatus = function (msg) {
-    if (typeof setLiveStatus === "function") try { setLiveStatus(msg); } catch (e) {}
-    rdPeek("Status", msg, true);
-  };
 
   var TOOL_LAW =
-    "\n\n[ROLXDESK TOOL LAW]\n"
-    + "Fokus PESAN USER TERAKHIR saja. Jangan mengulang topik lama.\n"
-    + "JANGAN bilang tidak bisa. JANGAN balas kosong. JANGAN meniru teks error sebagai tag.\n"
-    + "Tag: [[SEARCH: q]] [[BROWSE: url]] [[DOWNLOAD: url]] [[YOUTUBE: q]] [[IMG: prompt]] [[PLAY: lagu]] [[RUN_PY]] [[RUN_JS]] [[CALC: e]] [[WEATHER: kota]]\n"
-    + "Gambar=[[IMG:]]. Video=[[YOUTUBE:]]. Lagu=[[PLAY:]]. Situs=[[BROWSE:]].\n";
+    "\n\n[ROLXDESK TOOL LAW]\nFokus PESAN USER TERAKHIR. Jangan bilang tidak bisa. Jangan balas kosong.\n" +
+    "Tag: [[SEARCH: q]] [[BROWSE: url]] [[YOUTUBE: q]] [[IMG: prompt]] [[PLAY: lagu]] [[RUN_PY]] [[RUN_JS]]\n";
 
   function patchContinuity() {
     try {
-      if (typeof CONTINUITY === "string" && CONTINUITY.indexOf("PESAN USER TERAKHIR") === -1) CONTINUITY += TOOL_LAW;
+      if (typeof CONTINUITY === "string" && CONTINUITY.indexOf("TOOL LAW") === -1) CONTINUITY += TOOL_LAW;
     } catch (e) {}
-    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd45) {
+    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd46) {
       var orig = window.injectPersona;
       window.injectPersona = function (m) {
         var out = orig(m);
         if (Array.isArray(out) && out[0] && out[0].role === "system") {
           var c = String(out[0].content);
-          if (c.indexOf("PESAN USER TERAKHIR") === -1) out[0] = { role: "system", content: c + TOOL_LAW };
+          if (c.indexOf("TOOL LAW") === -1) out[0] = { role: "system", content: c + TOOL_LAW };
         }
         return out;
       };
-      window.injectPersona.__rd45 = true;
+      window.injectPersona.__rd46 = true;
     }
   }
 
@@ -149,7 +187,7 @@
   }
   function wantsYoutube(u) { return /(youtube|youtu\.be|putar\s*video|play\s*video|tonton|video\s+terbaru|short[s]?\b)/i.test(u); }
   function wantsMusic(u) { return /(spotify|putar\s*(lagu|musik)|play\s*(song|music|lagu)|lirik)/i.test(u) && !wantsYoutube(u); }
-  function wantsImage(u) { return /(buatkan?|generate|bikin|gambarin|draw|lukis|generate\s+image|make\s+(an?\s+)?image|\/img)\b/i.test(u); }
+  function wantsImage(u) { return /(buatkan?|generate|bikin|gambarin|draw|lukis|\/img)\b/i.test(u); }
 
   function forceToolsExpanded(userText, assistantText) {
     var out = assistantText || "";
@@ -165,13 +203,12 @@
       }
     }
     if (wantsImage(u) && !already("IMG") && !wantsYoutube(u)) {
-      var ip = u.replace(/.*(?:buatkan?|generate|bikin|gambarin|draw|lukis|generate\s+image|make\s+(?:an?\s+)?image|\/img)\s*/i, "").trim();
+      var ip = u.replace(/.*(?:buatkan?|generate|bikin|gambarin|draw|lukis|\/img)\s*/i, "").trim();
       if (ip.length < 3) ip = u.slice(0, 120);
       out += "\n[[IMG: " + ip.slice(0, 400) + "]]\n";
     }
     if (wantsYoutube(u) && !already("YOUTUBE")) {
       var yu = extractUrl(u) || u.replace(/.*(?:youtube|putar\s*video|play\s*video|tonton|video\s+terbaru(?:\s+dari)?|short[s]?)\s*/i, "").trim();
-      yu = yu.replace(/^(video|lagu)\s+/i, "").trim();
       if (yu) out += "\n[[YOUTUBE: " + yu.slice(0, 120) + "]]\n";
       out = out.replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
     } else if (wantsMusic(u) && !already("PLAY")) {
@@ -187,14 +224,14 @@
   }
 
   function patchForceTools() {
-    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd45) {
+    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd46) {
       var prev = window.forceToolsFromUser;
       window.forceToolsFromUser = function (ut, at) {
         var base = prev(ut, at);
         if (wantsYoutube(ut)) base = String(base || "").replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
         return forceToolsExpanded(ut, base);
       };
-      window.forceToolsFromUser.__rd45 = true;
+      window.forceToolsFromUser.__rd46 = true;
     } else if (typeof window.forceToolsFromUser !== "function") {
       window.forceToolsFromUser = forceToolsExpanded;
     }
@@ -205,7 +242,7 @@
     if (p) return p;
     p = el("div", { id: "rd-yt" });
     Object.assign(p.style, {
-      position: "fixed", right: "12px", bottom: "80px", width: "min(360px,92vw)",
+      position: "fixed", right: "12px", bottom: "88px", width: "min(360px,92vw)",
       zIndex: "10000", background: "#111", border: "1px solid #333", borderRadius: "12px",
       overflow: "hidden", display: "none"
     });
@@ -227,24 +264,58 @@
     return p;
   }
 
-  function playYoutube(q) {
-    var id = null;
-    var m = String(q).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/);
-    if (m) id = m[1];
+  function playYoutubeById(id, title) {
+    if (!id || !/^[A-Za-z0-9_-]{11}$/.test(id)) {
+      workStep("youtube", "ID tidak valid: " + id);
+      return false;
+    }
     var panel = ensureYoutubePanel();
     var frame = $("#rd-yt-frame");
-    var title = $("#rd-yt-title");
-    if (id) {
-      if (title) title.textContent = "YouTube \u00b7 " + id;
-      if (frame) frame.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
-      panel.style.display = "block";
-      return "\u25b6\ufe0f Mini player: https://youtu.be/" + id;
+    var t = $("#rd-yt-title");
+    if (t) t.textContent = (title || id).slice(0, 48);
+    if (frame) frame.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
+    panel.style.display = "block";
+    workStep("play", title || id);
+    return true;
+  }
+
+  async function resolveYoutube(q) {
+    var m = String(q).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+    if (m) return { id: m[1], title: q };
+    workStep("search", "YouTube: " + q);
+    try {
+      var r = await withTimeout(fetch("/api/yt-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q: q })
+      }), 14000, "yt-search");
+      var j = await r.json().catch(function () { return {}; });
+      workStep("source", (j.source || "?") + " \u00b7 " + JSON.stringify(j.tried || []).slice(0, 80));
+      if (r.ok && j.id && /^[A-Za-z0-9_-]{11}$/.test(j.id)) {
+        workStep("found", j.title || j.id);
+        return { id: j.id, title: j.title || q };
+      }
+      workStep("miss", j.error || "tidak ketemu ID valid");
+      return { search: j.search || ("https://www.youtube.com/results?search_query=" + encodeURIComponent(q)) };
+    } catch (e) {
+      workStep("error", String(e.message || e));
+      return { search: "https://www.youtube.com/results?search_query=" + encodeURIComponent(q) };
     }
-    // Jangan pakai listType=search (sering Video tidak tersedia)
-    var qq = encodeURIComponent(String(q).slice(0, 80));
-    if (title) title.textContent = "YouTube \u00b7 " + String(q).slice(0, 40);
-    panel.style.display = "none";
-    return "\u25b6\ufe0f Cari di YouTube: https://www.youtube.com/results?search_query=" + qq;
+  }
+
+  async function playYoutubeSmart(q) {
+    unlockSend();
+    workStart("Mencari video\u2026");
+    var res = await resolveYoutube(String(q).trim());
+    if (res.id) {
+      playYoutubeById(res.id, res.title);
+      workDone("Playing");
+      return "\u25b6\ufe0f " + (res.title || res.id) + "\nhttps://youtu.be/" + res.id;
+    }
+    workStep("fallback", "buka hasil pencarian");
+    workDone("Tidak ada embed");
+    try { if (res.search) window.open(res.search, "_blank"); } catch (e) {}
+    return "Cari di YouTube: " + (res.search || q);
   }
 
   function showSpotifyEmbedId(id, label) {
@@ -259,91 +330,66 @@
         wrap.style.display = "flex";
       }
     }
-    rdPeek("Spotify", label);
-    if (typeof showToast === "function") showToast("Play: " + label, "success");
-  }
-
-  async function playMusicFree(q) {
-    var yq = String(q).replace(/^(putar|play)\s+(lagu|musik|song|music)?\s*/i, "").trim() || q;
-    unlockSend();
-    rdStatus("Cari YouTube: " + yq);
-    try {
-      var r = await withTimeout(fetch("/api/yt-search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ q: yq + " official audio" })
-      }), 12000, "yt-search");
-      var j = await r.json().catch(function () { return {}; });
-      if (r.ok && j.id) {
-        var panel = ensureYoutubePanel();
-        var frame = $("#rd-yt-frame");
-        var title = $("#rd-yt-title");
-        if (title) title.textContent = String(j.title || yq).slice(0, 50);
-        if (frame) frame.src = "https://www.youtube-nocookie.com/embed/" + j.id + "?autoplay=1&rel=0";
-        panel.style.display = "block";
-        rdPeek("Musik", (j.title || yq) + "\n" + (j.url || ("https://youtu.be/" + j.id)));
-        if (typeof showToast === "function") showToast("Play: " + (j.title || yq), "success");
-        return;
-      }
-      var link = (j && j.search) || ("https://www.youtube.com/results?search_query=" + encodeURIComponent(yq + " official audio"));
-      rdPeek("Musik", "Buka:\n" + link);
-      if (typeof showToast === "function") showToast("Buka YouTube search", "info");
-      try { window.open(link, "_blank"); } catch (e) {}
-    } catch (e) {
-      rdPeek("Musik", "Gagal: " + (e.message || e));
-      unlockSend();
-    }
+    workStep("spotify", label);
   }
 
   function patchSpotify() {
     window.playSpotify = async function (query) {
       if (!query) return;
-      var q = String(query).trim();
       unlockSend();
-      rdStatus("Musik: " + q);
+      var q = String(query).trim();
+      workStart("Musik\u2026");
+      workStep("query", q);
       var mTrack = q.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/i) || q.match(/spotify:track:([A-Za-z0-9]+)/i);
       if (mTrack) {
-        showSpotifyEmbedId(mTrack[1], "Spotify \u00b7 " + mTrack[1]);
+        showSpotifyEmbedId(mTrack[1], "track " + mTrack[1]);
+        workDone("Spotify embed");
         return;
       }
-      await playMusicFree(q);
+      workStep("route", "YouTube (Spotify API 403 Dev Mode)");
+      await playYoutubeSmart(q.replace(/^(putar|play)\s+(lagu|musik|song|music)?\s*/i, "").trim() + " official audio");
+      unlockSend();
     };
-    window.playSpotify.__rd45 = true;
+    window.playSpotify.__rd46 = true;
 
-    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd45) {
+    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd46) {
       var om = window.maybePlayFromText;
       window.maybePlayFromText = async function (text) {
         if (wantsYoutube(text) || /\[\[YOUTUBE:/i.test(text || "")) return false;
         return om(text);
       };
-      window.maybePlayFromText.__rd45 = true;
+      window.maybePlayFromText.__rd46 = true;
     }
-    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd45) {
+    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd46) {
       var ex = window.extractPlayQuery;
       window.extractPlayQuery = function (text) {
         if (wantsYoutube(text)) return null;
         return ex(text);
       };
-      window.extractPlayQuery.__rd45 = true;
+      window.extractPlayQuery.__rd46 = true;
     }
   }
 
-  var _executed = { youtube: false, download: false, browse: false, image: false };
+  var _executed = { youtube: false, browse: false, image: false };
 
-  async function doBrowse(url, mode) {
-    rdStatus((mode === "download" ? "Download " : "Browse ") + url);
+  async function doBrowse(url) {
+    workStep("browse", url);
     try {
       var r = await withTimeout(fetch("/api/browse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url, mode: mode || "text" })
+        body: JSON.stringify({ url: url, mode: "text" })
       }), 20000, "browse");
       var j = await r.json();
-      if (!r.ok) return "Error browse: " + (j.error || r.status);
-      if (mode === "download") { _executed.download = true; return "Download: **" + (j.filename || "file") + "**"; }
+      if (!r.ok) {
+        workStep("browse fail", j.error || r.status);
+        return "Error browse: " + (j.error || r.status);
+      }
       _executed.browse = true;
+      workStep("browse ok", (j.title || "").slice(0, 60));
       return (j.title ? ("**" + j.title + "**\n") : "") + String(j.text || "").slice(0, 12000);
     } catch (e) {
+      workStep("browse err", String(e.message || e));
       return "Browse gagal: " + (e.message || e);
     }
   }
@@ -351,44 +397,46 @@
   async function generateImageGemini(prompt) {
     var key = (window.state && window.state.keys && window.state.keys.google) || "";
     if (!key) { try { key = (JSON.parse(localStorage.getItem("rd_keys") || "{}")).google || ""; } catch (e) {} }
-    if (!key) return { error: "Isi Google API key di Pengaturan." };
-    rdStatus("Generate gambar\u2026");
+    if (!key) return { error: "Isi Google API key" };
+    workStep("img", prompt.slice(0, 80));
     var models = ["gemini-3.1-flash-image", "gemini-2.5-flash-image", "gemini-3.1-flash-lite-image"];
     var lastErr = "";
     for (var mi = 0; mi < models.length; mi++) {
       var model = models[mi];
+      workStep("model", model);
       try {
         var url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key);
-        var body = {
-          contents: [{ role: "user", parts: [{ text: "Generate a high quality image: " + prompt }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
-        };
         var res = await withTimeout(fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        }), 28000, "img-" + model);
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: "Generate a high quality image: " + prompt }] }],
+            generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+          })
+        }), 28000, "img");
         var data = await res.json().catch(function () { return {}; });
         if (!res.ok) {
           lastErr = (data.error && data.error.message) || ("HTTP " + res.status);
-          if (/quota|rate.limit|billing/i.test(lastErr)) return { error: "Kuota Gemini habis." };
+          if (/quota|billing/i.test(lastErr)) return { error: "Kuota Gemini habis" };
           continue;
         }
         var parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
-        var texts = [], images = [];
+        var images = [], texts = [];
         for (var i = 0; i < parts.length; i++) {
           var p = parts[i];
           if (p.text) texts.push(p.text);
           var idata = p.inlineData || p.inline_data;
-          if (idata && idata.data) {
-            images.push("data:" + (idata.mimeType || idata.mime_type || "image/png") + ";base64," + idata.data);
-          }
+          if (idata && idata.data) images.push("data:" + (idata.mimeType || "image/png") + ";base64," + idata.data);
         }
-        if (images.length) { _executed.image = true; return { images: images, text: texts.join("\n").trim(), model: model }; }
-        lastErr = model + " tanpa gambar";
+        if (images.length) {
+          _executed.image = true;
+          workStep("img ok", model);
+          return { images: images, text: texts.join("\n"), model: model };
+        }
+        lastErr = model + " no image";
       } catch (e) { lastErr = String(e.message || e); }
     }
-    return { error: lastErr || "Gagal generate" };
+    return { error: lastErr || "gagal" };
   }
 
   function showGeneratedImages(images, caption) {
@@ -400,7 +448,7 @@
     bubble.className = "bubble";
     var html = caption ? "<p>" + String(caption).replace(/</g, "<").slice(0, 300) + "</p>" : "";
     for (var i = 0; i < images.length; i++) {
-      html += '<img class="msg-thumb" src="' + images[i] + '" alt="generated" style="max-width:min(100%,420px);max-height:360px;border-radius:12px;margin-top:8px;display:block" />';
+      html += '<img class="msg-thumb" src="' + images[i] + '" style="max-width:min(100%,420px);max-height:360px;border-radius:12px;margin-top:8px;display:block" />';
     }
     bubble.innerHTML = html;
     wrap.appendChild(bubble);
@@ -411,39 +459,50 @@
   async function runExtraTags(content) {
     if (!content) return content;
     var out = content;
-    _executed = { youtube: false, download: false, browse: false, image: false };
+    _executed = { youtube: false, browse: false, image: false };
+    unlockSend();
     try {
+      workStart("Menjalankan tools\u2026");
       var br = [...out.matchAll(/\[\[BROWSE:\s*([^\]]+)\]\]/gi)];
       for (var i = 0; i < br.length; i++) {
         var url = br[i][1].trim();
         if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-        var res = await doBrowse(url, "text");
+        var res = await doBrowse(url);
         out = out.replace(br[i][0], "\n**Browse (" + url + "):**\n" + res + "\n");
       }
-      out = out.replace(/\[\[YOUTUBE:\s*([^\]]+)\]\]/gi, function (_, q) {
+      var yts = [...out.matchAll(/\[\[YOUTUBE:\s*([^\]]+)\]\]/gi)];
+      for (var yi = 0; yi < yts.length; yi++) {
+        var ytxt = await playYoutubeSmart(yts[yi][1].trim());
         _executed.youtube = true;
-        return "\n" + playYoutube(q.trim()) + "\n";
-      });
+        out = out.replace(yts[yi][0], "\n" + ytxt + "\n");
+      }
       out = out.replace(/\[\[PLAY:\s*([^\]]+)\]\]/gi, function (_, q) {
-        try { window.playSpotify(q.trim()); } catch (e) { playMusicFree(q.trim()); }
-        return "\n\ud83c\udfb5 Putar: **" + q.trim() + "**\n";
+        try { window.playSpotify(q.trim()); } catch (e) {}
+        return "\n\ud83c\udfb5 " + q.trim() + "\n";
       });
       var ims = [...out.matchAll(/\[\[IMG:\s*([^\]]+)\]\]/gi)];
       for (var ii = 0; ii < ims.length; ii++) {
-        var iprompt = ims[ii][1].trim();
-        if (/not found for API|Generate gambar gagal|ModelService|quota/i.test(iprompt)) {
-          out = out.replace(ims[ii][0], ""); continue;
-        }
-        var ires = await generateImageGemini(iprompt);
+        var ip = ims[ii][1].trim();
+        if (/quota|not found|gagal/i.test(ip)) { out = out.replace(ims[ii][0], ""); continue; }
+        var ires = await generateImageGemini(ip);
         if (ires.images && ires.images.length) {
-          showGeneratedImages(ires.images, ires.text || ("Gambar: " + iprompt.slice(0, 80)));
-          out = out.replace(ims[ii][0], "\n\ud83d\uddbc\ufe0f Gambar siap.\n");
+          showGeneratedImages(ires.images, ires.text || ip.slice(0, 80));
+          out = out.replace(ims[ii][0], "\n\ud83d\uddbc\ufe0f Gambar siap\n");
         } else {
-          rdPeek("IMG error", String(ires.error || "").slice(0, 280), true);
-          out = out.replace(ims[ii][0], "\n\u26a0\ufe0f Generate gambar gagal.\n");
+          workStep("img fail", ires.error);
+          out = out.replace(ims[ii][0], "\n\u26a0\ufe0f Gambar gagal\n");
         }
       }
-    } catch (e) { rdPeek("runExtraTags error", String(e.message || e), true); }
+      var searches = [...out.matchAll(/\[\[SEARCH:\s*([^\]]+)\]\]/gi)];
+      for (var si = 0; si < searches.length; si++) {
+        workStep("search tag", searches[si][1].trim());
+      }
+      workDone("Tools selesai");
+    } catch (e) {
+      workStep("error", String(e.message || e));
+      workDone("Error");
+    }
+    unlockSend();
     return out.replace(/\n{3,}/g, "\n\n").trim();
   }
 
@@ -457,69 +516,93 @@
   }
 
   function patchRunAgentTags() {
-    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd45) {
+    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd46) {
       var orig = window.runAgentTags;
       window.runAgentTags = async function (content) {
+        unlockSend();
         try {
-          rdPeek("Agent tags", String(content || "").slice(0, 280), true);
-          var mid = await withTimeout(Promise.resolve(orig(content)), 90000, "agent-tags");
+          workStart("Agent tools");
+          workStep("tags", String(content || "").slice(0, 120));
+          var mid = await withTimeout(Promise.resolve(orig(content)), 60000, "agent");
           var final = await runExtraTags(mid);
           return ensureNonEmpty(final);
         } catch (e) {
-          rdPeek("Agent error", String(e.message || e), true);
+          workStep("agent error", String(e.message || e));
+          workDone("Error");
           unlockSend();
-          return "Error tool: " + (e.message || e);
-        } finally { unlockSend(); }
+          return "Error: " + (e.message || e);
+        } finally {
+          unlockSend();
+        }
       };
-      window.runAgentTags.__rd45 = true;
+      window.runAgentTags.__rd46 = true;
     }
   }
 
   setInterval(function () {
     try {
-      if (window.state && (window.state.isStreaming || window.state._sendLock)) {
+      var locked = window.state && (window.state.isStreaming || window.state._sendLock);
+      var btn = document.getElementById("sendBtn");
+      if (btn && btn.disabled && !locked) { btn.disabled = false; }
+      if (locked) {
         if (!window.__rdLockSince) window.__rdLockSince = Date.now();
-        else if (Date.now() - window.__rdLockSince > 60000) {
-          unlockSend(); window.__rdLockSince = 0;
-          rdPeek("Watchdog", "Send unlock 60s");
+        else if (Date.now() - window.__rdLockSince > 25000) {
+          unlockSend();
+          window.__rdLockSince = 0;
+          workStep("watchdog", "unlock 25s");
         }
       } else window.__rdLockSince = 0;
     } catch (e) {}
-  }, 4000);
+  }, 3000);
 
   function handleSlash(text) {
     var m = String(text || "").trim().match(/^\/(img|image|gambar|song|lagu|music|video|vid)\s+([\s\S]+)/i);
     if (!m) return null;
     var cmd = m[1].toLowerCase(), prompt = m[2].trim();
-    if (cmd === "img" || cmd === "image" || cmd === "gambar") return { userText: prompt + "\n\n[[IMG: " + prompt + "]]", inject: "" };
-    if (cmd === "song" || cmd === "lagu" || cmd === "music") return { userText: prompt + "\n\n[[PLAY: " + prompt + "]]", inject: "" };
-    return { userText: prompt, inject: "" };
+    if (cmd === "img" || cmd === "image" || cmd === "gambar") return prompt + "\n\n[[IMG: " + prompt + "]]";
+    if (cmd === "song" || cmd === "lagu" || cmd === "music") return prompt + "\n\n[[PLAY: " + prompt + "]]";
+    return prompt + "\n\n[[YOUTUBE: " + prompt + "]]";
   }
 
   function hookComposer() {
     document.querySelectorAll("#userInput, textarea").forEach(function (ta) {
-      if (!ta || ta.__rdSlash45) return;
-      ta.__rdSlash45 = true;
+      if (!ta || ta.__rd46) return;
+      ta.__rd46 = true;
       ta.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           var raw = ta.value != null ? ta.value : ta.innerText;
           var sl = handleSlash(raw);
-          if (sl && ta.value != null) ta.value = sl.userText;
+          if (sl && ta.value != null) ta.value = sl;
         }
       }, true);
     });
   }
 
   function boot() {
-    injectMobileCSS(); patchContinuity(); patchForceTools(); patchSpotify(); patchRunAgentTags();
-    hookComposer(); ensurePeek(); unlockSend();
-    rdPeek("RolxDesk extras v4.5", "Musik: yt-search ID + no freeze");
+    injectMobileCSS();
+    patchContinuity();
+    patchForceTools();
+    patchSpotify();
+    patchRunAgentTags();
+    hookComposer();
+    unlockSend();
+    workStart("RolxDesk v4.6");
+    workStep("ready", "Working panel \u00b7 YT ID valid saja \u00b7 unlock 25s");
+    workDone("Siap");
   }
   function rebind() {
-    injectMobileCSS(); patchContinuity(); patchForceTools(); patchSpotify(); patchRunAgentTags(); hookComposer();
+    injectMobileCSS();
+    patchContinuity();
+    patchForceTools();
+    patchSpotify();
+    patchRunAgentTags();
+    hookComposer();
+    unlockSend();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
-  else setTimeout(boot, 200);
-  setTimeout(rebind, 800); setTimeout(rebind, 2000); setTimeout(rebind, 5000);
+  else setTimeout(boot, 150);
+  setTimeout(rebind, 700);
+  setTimeout(rebind, 2000);
+  setTimeout(rebind, 5000);
 })();
