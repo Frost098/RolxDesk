@@ -1,5 +1,5 @@
-// POST /api/yt-search  { q: "lagu" }
-// Gratis: Piped / Invidious — ambil videoId pertama (tanpa YouTube Data API key)
+// POST /api/yt-search { q }
+// Free Piped/Invidious — return only valid 11-char YouTube video IDs
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -16,46 +16,65 @@ export default async function handler(req, res) {
 
   const qq = encodeURIComponent(q);
   const sources = [
-    "https://pipedapi.kavin.rocks/search?q=" + qq + "&filter=videos",
-    "https://pipedapi.adminforge.de/search?q=" + qq + "&filter=videos",
-    "https://invidious.nerdvpn.de/api/v1/search?q=" + qq + "&type=video",
-    "https://yt.artemislena.eu/api/v1/search?q=" + qq + "&type=video"
+    { url: "https://pipedapi.kavin.rocks/search?q=" + qq + "&filter=videos", kind: "piped" },
+    { url: "https://pipedapi.adminforge.de/search?q=" + qq + "&filter=videos", kind: "piped" },
+    { url: "https://invidious.nerdvpn.de/api/v1/search?q=" + qq + "&type=video", kind: "invidious" },
+    { url: "https://yt.artemislena.eu/api/v1/search?q=" + qq + "&type=video", kind: "invidious" }
   ];
 
-  for (const url of sources) {
+  function validId(id) {
+    return typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id);
+  }
+  function pickId(it) {
+    if (!it || typeof it !== "object") return null;
+    if (validId(it.videoId)) return it.videoId;
+    if (validId(it.id)) return it.id;
+    if (typeof it.url === "string") {
+      const m = it.url.match(/(?:v=|youtu\.be\/|\/watch\/|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
+      if (m && validId(m[1])) return m[1];
+      const bare = it.url.replace(/^\//, "");
+      if (validId(bare)) return bare;
+    }
+    return null;
+  }
+
+  const tried = [];
+  for (const src of sources) {
     try {
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 8000);
-      const r = await fetch(url, {
+      const t = setTimeout(() => ctrl.abort(), 7000);
+      const r = await fetch(src.url, {
         signal: ctrl.signal,
         headers: { Accept: "application/json", "User-Agent": "RolxDesk/1.0" }
       });
       clearTimeout(t);
+      tried.push(src.kind + ":" + r.status);
       if (!r.ok) continue;
       const data = await r.json().catch(() => null);
       if (!data) continue;
-
       let items = Array.isArray(data) ? data : (data.items || data.results || []);
       for (const it of items) {
-        const id =
-          it.videoId ||
-          it.id ||
-          (typeof it.url === "string" && (it.url.match(/[?&]v=([A-Za-z0-9_-]{6,})/) || [])[1]) ||
-          (typeof it.url === "string" && it.url.replace(/^\//, "").length === 11 ? it.url.replace(/^\//, "") : null);
+        const type = (it.type || it.kind || "").toLowerCase();
+        if (type && type !== "video" && type !== "stream") continue;
+        const id = pickId(it);
+        if (!id) continue;
         const title = it.title || it.name || q;
-        if (id && /^[A-Za-z0-9_-]{6,15}$/.test(id)) {
-          return res.status(200).json({
-            id: id,
-            title: title,
-            url: "https://youtu.be/" + id
-          });
-        }
+        return res.status(200).json({
+          id,
+          title,
+          url: "https://youtu.be/" + id,
+          source: src.kind,
+          tried
+        });
       }
-    } catch (_) {}
+    } catch (e) {
+      tried.push(src.kind + ":err");
+    }
   }
 
   return res.status(404).json({
-    error: "Tidak ketemu video",
-    search: "https://www.youtube.com/results?search_query=" + qq
+    error: "Tidak ketemu video valid",
+    search: "https://www.youtube.com/results?search_query=" + qq,
+    tried
   });
 }
