@@ -1,7 +1,7 @@
-/* RolxDesk extras v4.6 — Grok-style working panel + valid YT IDs + no lock */
+/* RolxDesk extras v4.7 — anti-sticky + connectors + solid YT search */
 (function () {
-  if (window.__RD_EXTRAS_V46__) return;
-  window.__RD_EXTRAS_V46__ = true;
+  if (window.__RD_EXTRAS_V47__) return;
+  window.__RD_EXTRAS_V47__ = true;
   window.__RD_EXTRAS__ = true;
 
   function $(s, r) { return (r || document).querySelector(s); }
@@ -55,7 +55,6 @@
     } catch (e) {}
   }
 
-  var _steps = [];
   function ensureWorkPanel() {
     var box = $("#rd-work");
     if (box) return box;
@@ -91,7 +90,6 @@
   }
 
   function workStart(title) {
-    _steps = [];
     var box = ensureWorkPanel();
     var t = $("#rd-work-title");
     if (t) t.textContent = title || "Working";
@@ -102,7 +100,6 @@
     box.style.display = "block";
   }
   function workStep(label, detail) {
-    _steps.push({ label: label, detail: detail || "" });
     var body = $("#rd-work-steps");
     if (!body) return;
     var row = el("div", { class: "rd-step" });
@@ -121,13 +118,13 @@
     window.__rdWorkHide = setTimeout(function () {
       var box = $("#rd-work");
       if (box) box.style.display = "none";
-    }, 8000);
+    }, 9000);
   }
 
   window.rdPeek = function (title, body) {
     workStart(title || "Aktivitas");
     String(body || "").split("\n").forEach(function (line) {
-      if (line.trim()) workStep(line.trim().slice(0, 40), line.trim().length > 40 ? line.trim().slice(40) : "");
+      if (line.trim()) workStep(line.trim().slice(0, 48), line.trim().length > 48 ? line.trim().slice(48) : "");
     });
   };
   window.rdStatus = function (msg) {
@@ -156,24 +153,54 @@
   }
 
   var TOOL_LAW =
-    "\n\n[ROLXDESK TOOL LAW]\nFokus PESAN USER TERAKHIR. Jangan bilang tidak bisa. Jangan balas kosong.\n" +
-    "Tag: [[SEARCH: q]] [[BROWSE: url]] [[YOUTUBE: q]] [[IMG: prompt]] [[PLAY: lagu]] [[RUN_PY]] [[RUN_JS]]\n";
+    "\n\n[ROLXDESK TOOL LAW]\n"
+    + "PRIORITAS MUTLAK: PESAN USER TERAKHIR saja. JANGAN kembali ke topik/link/browse lama kecuali user minta lagi.\n"
+    + "JANGAN bilang tidak bisa / tidak punya tools. JANGAN balas kosong.\n"
+    + "Tag: [[SEARCH: q]] [[BROWSE: url]] [[YOUTUBE: q]] [[IMG: prompt]] [[PLAY: lagu]] [[RUN_PY]] [[RUN_JS]] [[MCP:service:aksi]]\n"
+    + "Video terbaru channel X \u2192 [[YOUTUBE: X]]. Lagu \u2192 [[PLAY: judul]].\n";
+
+  function connectorHint() {
+    var lines = [];
+    try {
+      var k = (window.state && window.state.keys) || {};
+      try {
+        var ls = JSON.parse(localStorage.getItem("rd_keys") || "{}");
+        k = Object.assign({}, ls, k);
+      } catch (e2) {}
+      if (k.github) lines.push("GitHub: TERHUBUNG \u2192 [[MCP:github:status]]");
+      if (k.vercel) lines.push("Vercel: TERHUBUNG \u2192 [[MCP:vercel:status]]");
+      if (k.wix) lines.push("Wix: TERHUBUNG");
+      if (k.openrouter) lines.push("OpenRouter: TERHUBUNG");
+      if (k.google) lines.push("Google key: TERHUBUNG (pakai [[IMG:]] untuk gambar)");
+      if (k.spotify || k.spotifyClientId) lines.push("Spotify kredensial ada (fallback YouTube jika 403)");
+    } catch (e) {}
+    if (!lines.length) return "\n[Konektor] Belum ada token di Pengaturan.\n";
+    return "\n[Konektor aktif di RolxDesk]\n- " + lines.join("\n- ") + "\nPakai tag MCP \u2014 jangan bilang tidak terhubung.\n";
+  }
 
   function patchContinuity() {
     try {
-      if (typeof CONTINUITY === "string" && CONTINUITY.indexOf("TOOL LAW") === -1) CONTINUITY += TOOL_LAW;
+      if (typeof CONTINUITY === "string" && CONTINUITY.indexOf("PRIORITAS MUTLAK") === -1) {
+        CONTINUITY = String(CONTINUITY).replace(
+          /Lanjutkan percakapan yang sudah ada[^.]*\./i,
+          "Prioritas PESAN USER TERAKHIR; jangan kembali ke topik lama kecuali diminta."
+        );
+        CONTINUITY += TOOL_LAW;
+      }
     } catch (e) {}
-    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd46) {
+    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd47) {
       var orig = window.injectPersona;
       window.injectPersona = function (m) {
         var out = orig(m);
         if (Array.isArray(out) && out[0] && out[0].role === "system") {
           var c = String(out[0].content);
-          if (c.indexOf("TOOL LAW") === -1) out[0] = { role: "system", content: c + TOOL_LAW };
+          if (c.indexOf("PRIORITAS MUTLAK") === -1) c += TOOL_LAW;
+          if (c.indexOf("[Konektor") === -1) c += connectorHint();
+          out[0] = { role: "system", content: c };
         }
         return out;
       };
-      window.injectPersona.__rd46 = true;
+      window.injectPersona.__rd47 = true;
     }
   }
 
@@ -185,9 +212,15 @@
     var m = String(s || "").match(/\b((?:[a-z0-9-]+\.)+(?:vercel\.app|netlify\.app|github\.io|com|net|org|io|id|co|app|dev|xyz))\b/i);
     return m ? m[1] : null;
   }
-  function wantsYoutube(u) { return /(youtube|youtu\.be|putar\s*video|play\s*video|tonton|video\s+terbaru|short[s]?\b)/i.test(u); }
-  function wantsMusic(u) { return /(spotify|putar\s*(lagu|musik)|play\s*(song|music|lagu)|lirik)/i.test(u) && !wantsYoutube(u); }
-  function wantsImage(u) { return /(buatkan?|generate|bikin|gambarin|draw|lukis|\/img)\b/i.test(u); }
+  function wantsYoutube(u) {
+    return /(youtube|youtu\.be|putar\s*video|play\s*video|tonton|video\s+terbaru|short[s]?\b|terbaru\s+(oleh|dari|by))/i.test(u);
+  }
+  function wantsMusic(u) {
+    return /(spotify|putar\s*(lagu|musik)|play\s*(song|music|lagu)|lirik)/i.test(u) && !wantsYoutube(u);
+  }
+  function wantsImage(u) {
+    return /(buatkan?|generate|bikin|gambarin|draw|lukis|\/img)\b/i.test(u);
+  }
 
   function forceToolsExpanded(userText, assistantText) {
     var out = assistantText || "";
@@ -208,7 +241,15 @@
       out += "\n[[IMG: " + ip.slice(0, 400) + "]]\n";
     }
     if (wantsYoutube(u) && !already("YOUTUBE")) {
-      var yu = extractUrl(u) || u.replace(/.*(?:youtube|putar\s*video|play\s*video|tonton|video\s+terbaru(?:\s+dari)?|short[s]?)\s*/i, "").trim();
+      var yu = extractUrl(u);
+      if (!yu) {
+        yu = u
+          .replace(/.*(?:youtube|putar\s*video|play\s*video|tonton)\s*/i, "")
+          .replace(/\bvideo\s+terbaru\s+(oleh|dari|by)\s+/i, "")
+          .replace(/\bterbaru\s+(oleh|dari|by)\s+/i, "")
+          .replace(/^(video|oleh|dari|by)\s+/i, "")
+          .trim();
+      }
       if (yu) out += "\n[[YOUTUBE: " + yu.slice(0, 120) + "]]\n";
       out = out.replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
     } else if (wantsMusic(u) && !already("PLAY")) {
@@ -224,14 +265,14 @@
   }
 
   function patchForceTools() {
-    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd46) {
+    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd47) {
       var prev = window.forceToolsFromUser;
       window.forceToolsFromUser = function (ut, at) {
         var base = prev(ut, at);
         if (wantsYoutube(ut)) base = String(base || "").replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
         return forceToolsExpanded(ut, base);
       };
-      window.forceToolsFromUser.__rd46 = true;
+      window.forceToolsFromUser.__rd47 = true;
     } else if (typeof window.forceToolsFromUser !== "function") {
       window.forceToolsFromUser = forceToolsExpanded;
     }
@@ -266,7 +307,7 @@
 
   function playYoutubeById(id, title) {
     if (!id || !/^[A-Za-z0-9_-]{11}$/.test(id)) {
-      workStep("youtube", "ID tidak valid: " + id);
+      workStep("youtube", "ID invalid: " + id);
       return false;
     }
     var panel = ensureYoutubePanel();
@@ -282,20 +323,21 @@
   async function resolveYoutube(q) {
     var m = String(q).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
     if (m) return { id: m[1], title: q };
-    workStep("search", "YouTube: " + q);
+    workStep("search", q);
     try {
       var r = await withTimeout(fetch("/api/yt-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ q: q })
-      }), 14000, "yt-search");
+      }), 16000, "yt-search");
       var j = await r.json().catch(function () { return {}; });
-      workStep("source", (j.source || "?") + " \u00b7 " + JSON.stringify(j.tried || []).slice(0, 80));
+      workStep("source", (j.source || "?") + " q=" + (j.query || q));
+      if (j.tried) workStep("tried", JSON.stringify(j.tried).slice(0, 100));
       if (r.ok && j.id && /^[A-Za-z0-9_-]{11}$/.test(j.id)) {
         workStep("found", j.title || j.id);
         return { id: j.id, title: j.title || q };
       }
-      workStep("miss", j.error || "tidak ketemu ID valid");
+      workStep("miss", j.error || "no valid id");
       return { search: j.search || ("https://www.youtube.com/results?search_query=" + encodeURIComponent(q)) };
     } catch (e) {
       workStep("error", String(e.message || e));
@@ -312,7 +354,7 @@
       workDone("Playing");
       return "\u25b6\ufe0f " + (res.title || res.id) + "\nhttps://youtu.be/" + res.id;
     }
-    workStep("fallback", "buka hasil pencarian");
+    workStep("fallback", "buka search YouTube");
     workDone("Tidak ada embed");
     try { if (res.search) window.open(res.search, "_blank"); } catch (e) {}
     return "Cari di YouTube: " + (res.search || q);
@@ -346,27 +388,27 @@
         workDone("Spotify embed");
         return;
       }
-      workStep("route", "YouTube (Spotify API 403 Dev Mode)");
+      workStep("route", "YouTube audio");
       await playYoutubeSmart(q.replace(/^(putar|play)\s+(lagu|musik|song|music)?\s*/i, "").trim() + " official audio");
       unlockSend();
     };
-    window.playSpotify.__rd46 = true;
+    window.playSpotify.__rd47 = true;
 
-    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd46) {
+    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd47) {
       var om = window.maybePlayFromText;
       window.maybePlayFromText = async function (text) {
         if (wantsYoutube(text) || /\[\[YOUTUBE:/i.test(text || "")) return false;
         return om(text);
       };
-      window.maybePlayFromText.__rd46 = true;
+      window.maybePlayFromText.__rd47 = true;
     }
-    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd46) {
+    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd47) {
       var ex = window.extractPlayQuery;
       window.extractPlayQuery = function (text) {
         if (wantsYoutube(text)) return null;
         return ex(text);
       };
-      window.extractPlayQuery.__rd46 = true;
+      window.extractPlayQuery.__rd47 = true;
     }
   }
 
@@ -493,10 +535,6 @@
           out = out.replace(ims[ii][0], "\n\u26a0\ufe0f Gambar gagal\n");
         }
       }
-      var searches = [...out.matchAll(/\[\[SEARCH:\s*([^\]]+)\]\]/gi)];
-      for (var si = 0; si < searches.length; si++) {
-        workStep("search tag", searches[si][1].trim());
-      }
       workDone("Tools selesai");
     } catch (e) {
       workStep("error", String(e.message || e));
@@ -516,7 +554,7 @@
   }
 
   function patchRunAgentTags() {
-    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd46) {
+    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd47) {
       var orig = window.runAgentTags;
       window.runAgentTags = async function (content) {
         unlockSend();
@@ -535,7 +573,7 @@
           unlockSend();
         }
       };
-      window.runAgentTags.__rd46 = true;
+      window.runAgentTags.__rd47 = true;
     }
   }
 
@@ -543,7 +581,7 @@
     try {
       var locked = window.state && (window.state.isStreaming || window.state._sendLock);
       var btn = document.getElementById("sendBtn");
-      if (btn && btn.disabled && !locked) { btn.disabled = false; }
+      if (btn && btn.disabled && !locked) btn.disabled = false;
       if (locked) {
         if (!window.__rdLockSince) window.__rdLockSince = Date.now();
         else if (Date.now() - window.__rdLockSince > 25000) {
@@ -566,8 +604,8 @@
 
   function hookComposer() {
     document.querySelectorAll("#userInput, textarea").forEach(function (ta) {
-      if (!ta || ta.__rd46) return;
-      ta.__rd46 = true;
+      if (!ta || ta.__rd47) return;
+      ta.__rd47 = true;
       ta.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           var raw = ta.value != null ? ta.value : ta.innerText;
@@ -586,8 +624,8 @@
     patchRunAgentTags();
     hookComposer();
     unlockSend();
-    workStart("RolxDesk v4.6");
-    workStep("ready", "Working panel \u00b7 YT ID valid saja \u00b7 unlock 25s");
+    workStart("RolxDesk v4.7");
+    workStep("ready", "anti-sticky \u00b7 connectors \u00b7 YT mirrors");
     workDone("Siap");
   }
   function rebind() {
