@@ -1,7 +1,7 @@
-/* RolxDesk extras v4.7 — anti-sticky + connectors + solid YT search */
+/* RolxDesk extras v4.8 — brief browse + raw github for RD */
 (function () {
-  if (window.__RD_EXTRAS_V47__) return;
-  window.__RD_EXTRAS_V47__ = true;
+  if (window.__RD_EXTRAS_V48__) return;
+  window.__RD_EXTRAS_V48__ = true;
   window.__RD_EXTRAS__ = true;
 
   function $(s, r) { return (r || document).querySelector(s); }
@@ -156,6 +156,7 @@
     "\n\n[ROLXDESK TOOL LAW]\n"
     + "PRIORITAS MUTLAK: PESAN USER TERAKHIR saja. JANGAN kembali ke topik/link/browse lama kecuali user minta lagi.\n"
     + "JANGAN bilang tidak bisa / tidak punya tools. JANGAN balas kosong.\n"
+    + "Setelah tool (browse/search): JELASKAN RINGKAS dulu (3-8 kalimat / bullet). JANGAN hanya menempel seluruh teks mentah.\n"
     + "Tag: [[SEARCH: q]] [[BROWSE: url]] [[YOUTUBE: q]] [[IMG: prompt]] [[PLAY: lagu]] [[RUN_PY]] [[RUN_JS]] [[MCP:service:aksi]]\n"
     + "Video terbaru channel X \u2192 [[YOUTUBE: X]]. Lagu \u2192 [[PLAY: judul]].\n";
 
@@ -167,15 +168,15 @@
         var ls = JSON.parse(localStorage.getItem("rd_keys") || "{}");
         k = Object.assign({}, ls, k);
       } catch (e2) {}
-      if (k.github) lines.push("GitHub: TERHUBUNG \u2192 [[MCP:github:status]]");
-      if (k.vercel) lines.push("Vercel: TERHUBUNG \u2192 [[MCP:vercel:status]]");
+      if (k.github) lines.push("GitHub: TERHUBUNG");
+      if (k.vercel) lines.push("Vercel: TERHUBUNG");
       if (k.wix) lines.push("Wix: TERHUBUNG");
       if (k.openrouter) lines.push("OpenRouter: TERHUBUNG");
-      if (k.google) lines.push("Google key: TERHUBUNG (pakai [[IMG:]] untuk gambar)");
-      if (k.spotify || k.spotifyClientId) lines.push("Spotify kredensial ada (fallback YouTube jika 403)");
+      if (k.google) lines.push("Google key: TERHUBUNG ([[IMG:]])");
+      if (k.spotify || k.spotifyClientId) lines.push("Spotify kredensial ada");
     } catch (e) {}
     if (!lines.length) return "\n[Konektor] Belum ada token di Pengaturan.\n";
-    return "\n[Konektor aktif di RolxDesk]\n- " + lines.join("\n- ") + "\nPakai tag MCP \u2014 jangan bilang tidak terhubung.\n";
+    return "\n[Konektor aktif]\n- " + lines.join("\n- ") + "\n";
   }
 
   function patchContinuity() {
@@ -188,7 +189,7 @@
         CONTINUITY += TOOL_LAW;
       }
     } catch (e) {}
-    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd47) {
+    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd48) {
       var orig = window.injectPersona;
       window.injectPersona = function (m) {
         var out = orig(m);
@@ -200,7 +201,7 @@
         }
         return out;
       };
-      window.injectPersona.__rd47 = true;
+      window.injectPersona.__rd48 = true;
     }
   }
 
@@ -221,17 +222,34 @@
   function wantsImage(u) {
     return /(buatkan?|generate|bikin|gambarin|draw|lukis|\/img)\b/i.test(u);
   }
+  function wantsBrief(u) {
+    return /(ringkas|singkat|rangkum|summary|tl;?dr|apa\s+aja|jelaskan\s+singkat|poin\s+utama)/i.test(String(u || ""));
+  }
 
   function forceToolsExpanded(userText, assistantText) {
     var out = assistantText || "";
     var u = String(userText || "");
+    try { window.__rdLastUser = u; } catch (e) {}
     var already = function (tag) { return new RegExp("\\[\\[" + tag, "i").test(out); };
     var url = extractUrl(u);
     var dom = extractDomain(u);
     if (!url && dom) url = "https://" + dom;
+
+    if (/frost098\/rolxdesk|github\.com\/frost098\/rolxdesk|repo\s+rd\b|isi\s+repo/i.test(u) && !already("BROWSE")) {
+      var target = "https://raw.githubusercontent.com/Frost098/RolxDesk/main/SOURCE.md";
+      if (/readme/i.test(u)) target = "https://raw.githubusercontent.com/Frost098/RolxDesk/main/README.md";
+      if (/extras/i.test(u)) target = "https://raw.githubusercontent.com/Frost098/RolxDesk/main/extras.js";
+      out += "\n[[BROWSE: " + target + "]]\n";
+      out = out.replace(/\[\[SEARCH:\s*[^\]]*\]\]/gi, "");
+    }
     if (url && !/youtube\.com|youtu\.be|spotify\.com/i.test(url)) {
       if (/(research|cari|buka|baca|browse|telusuri|kunjungi|isi|lihat|apa\s+aja|ringkas)/i.test(u) || /^https?:\/\//i.test(u.trim()) || dom) {
-        if (!already("BROWSE")) out += "\n[[BROWSE: " + url + "]]\n";
+        if (!already("BROWSE")) {
+          var g = url.match(/github\.com\/([^\/]+)\/([^\/]+)(?:\/blob\/[^\/]+\/(.+))?/i);
+          if (g && !g[3]) url = "https://raw.githubusercontent.com/" + g[1] + "/" + g[2] + "/main/README.md";
+          else if (g && g[3]) url = "https://raw.githubusercontent.com/" + g[1] + "/" + g[2] + "/main/" + g[3];
+          out += "\n[[BROWSE: " + url + "]]\n";
+        }
         out = out.replace(/\[\[SEARCH:\s*[^\]]*\]\]/gi, "");
       }
     }
@@ -265,14 +283,14 @@
   }
 
   function patchForceTools() {
-    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd47) {
+    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd48) {
       var prev = window.forceToolsFromUser;
       window.forceToolsFromUser = function (ut, at) {
         var base = prev(ut, at);
         if (wantsYoutube(ut)) base = String(base || "").replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
         return forceToolsExpanded(ut, base);
       };
-      window.forceToolsFromUser.__rd47 = true;
+      window.forceToolsFromUser.__rd48 = true;
     } else if (typeof window.forceToolsFromUser !== "function") {
       window.forceToolsFromUser = forceToolsExpanded;
     }
@@ -332,7 +350,6 @@
       }), 16000, "yt-search");
       var j = await r.json().catch(function () { return {}; });
       workStep("source", (j.source || "?") + " q=" + (j.query || q));
-      if (j.tried) workStep("tried", JSON.stringify(j.tried).slice(0, 100));
       if (r.ok && j.id && /^[A-Za-z0-9_-]{11}$/.test(j.id)) {
         workStep("found", j.title || j.id);
         return { id: j.id, title: j.title || q };
@@ -392,29 +409,29 @@
       await playYoutubeSmart(q.replace(/^(putar|play)\s+(lagu|musik|song|music)?\s*/i, "").trim() + " official audio");
       unlockSend();
     };
-    window.playSpotify.__rd47 = true;
+    window.playSpotify.__rd48 = true;
 
-    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd47) {
+    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd48) {
       var om = window.maybePlayFromText;
       window.maybePlayFromText = async function (text) {
         if (wantsYoutube(text) || /\[\[YOUTUBE:/i.test(text || "")) return false;
         return om(text);
       };
-      window.maybePlayFromText.__rd47 = true;
+      window.maybePlayFromText.__rd48 = true;
     }
-    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd47) {
+    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd48) {
       var ex = window.extractPlayQuery;
       window.extractPlayQuery = function (text) {
         if (wantsYoutube(text)) return null;
         return ex(text);
       };
-      window.extractPlayQuery.__rd47 = true;
+      window.extractPlayQuery.__rd48 = true;
     }
   }
 
   var _executed = { youtube: false, browse: false, image: false };
 
-  async function doBrowse(url) {
+  async function doBrowse(url, brief) {
     workStep("browse", url);
     try {
       var r = await withTimeout(fetch("/api/browse", {
@@ -429,7 +446,26 @@
       }
       _executed.browse = true;
       workStep("browse ok", (j.title || "").slice(0, 60));
-      return (j.title ? ("**" + j.title + "**\n") : "") + String(j.text || "").slice(0, 12000);
+      var title = j.title ? String(j.title).trim() : "";
+      var text = String(j.text || "").replace(/\s+/g, " ").trim();
+      var limit = brief ? 900 : 3500;
+      var body = text.slice(0, limit);
+      if (text.length > limit) body += "\u2026";
+      var out = "";
+      if (title) out += "**" + title + "**\n";
+      out += "_Sumber: " + url + "_\n\n";
+      if (brief) {
+        var parts = text.split(/(?<=[.!?])\s+/).filter(function (s) { return s.length > 40; }).slice(0, 6);
+        if (parts.length >= 2) {
+          out += parts.map(function (s) { return "- " + s.slice(0, 160); }).join("\n");
+        } else {
+          out += body;
+        }
+        out += "\n\n_(ringkas otomatis \u2014 minta detail file tertentu jika perlu)_";
+      } else {
+        out += body;
+      }
+      return out;
     } catch (e) {
       workStep("browse err", String(e.message || e));
       return "Browse gagal: " + (e.message || e);
@@ -509,7 +545,8 @@
       for (var i = 0; i < br.length; i++) {
         var url = br[i][1].trim();
         if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-        var res = await doBrowse(url);
+        var brief = !!(window.__rdLastUser && wantsBrief(window.__rdLastUser));
+        var res = await doBrowse(url, brief);
         out = out.replace(br[i][0], "\n**Browse (" + url + "):**\n" + res + "\n");
       }
       var yts = [...out.matchAll(/\[\[YOUTUBE:\s*([^\]]+)\]\]/gi)];
@@ -554,7 +591,7 @@
   }
 
   function patchRunAgentTags() {
-    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd47) {
+    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd48) {
       var orig = window.runAgentTags;
       window.runAgentTags = async function (content) {
         unlockSend();
@@ -573,7 +610,7 @@
           unlockSend();
         }
       };
-      window.runAgentTags.__rd47 = true;
+      window.runAgentTags.__rd48 = true;
     }
   }
 
@@ -604,8 +641,8 @@
 
   function hookComposer() {
     document.querySelectorAll("#userInput, textarea").forEach(function (ta) {
-      if (!ta || ta.__rd47) return;
-      ta.__rd47 = true;
+      if (!ta || ta.__rd48) return;
+      ta.__rd48 = true;
       ta.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           var raw = ta.value != null ? ta.value : ta.innerText;
@@ -624,8 +661,8 @@
     patchRunAgentTags();
     hookComposer();
     unlockSend();
-    workStart("RolxDesk v4.7");
-    workStep("ready", "anti-sticky \u00b7 connectors \u00b7 YT mirrors");
+    workStart("RolxDesk v4.8");
+    workStep("ready", "browse ringkas \u00b7 raw github");
     workDone("Siap");
   }
   function rebind() {
