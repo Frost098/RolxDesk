@@ -1,11 +1,26 @@
-// POST { model, messages, temperature?, max_tokens? }
-// Uses OPENROUTER_API_KEY from Vercel env when client has no key
+// GET = list models | POST = chat via OPENROUTER_API_KEY
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(204).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
+  if (req.method === "GET") {
+    const hasKey = !!(process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY);
+    const models = [
+      { id: "qwen/qwen3.8-27b:free", name: "RD Qwen3.8 27B" },
+      { id: "google/gemma-4-31b-it:free", name: "RD Gemma 4 31B" },
+      { id: "google/gemma-4-26b-a4b-it:free", name: "RD Gemma 4 26B" },
+      { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "RD Nemotron Super" },
+      { id: "nvidia/nemotron-3.5-lightning:free", name: "RD Nemotron Lightning" },
+      { id: "cohere/north-mini-code:free", name: "RD North Mini Code" },
+      { id: "thinkingmachines/inkling:free", name: "RD Inkling" },
+      { id: "openrouter/free", name: "RD Free Auto" }
+    ];
+    return res.status(200).json({ hosted: hasKey, models, note: hasKey ? "Siap" : "Set OPENROUTER_API_KEY" });
+  }
+
+  if (req.method !== "POST") return res.status(405).json({ error: "GET/POST only" });
 
   const key = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "";
   if (!key) {
@@ -26,7 +41,7 @@ export default async function handler(req, res) {
   const allow = [
     "openrouter/free", "nvidia/nemotron", "google/gemma", "deepseek/",
     "meta-llama/", "qwen/", "mistralai/", "inclusionai/", "nex-agi/",
-    "poolside/", ":free"
+    "poolside/", "thinkingmachines/", "cohere/", ":free"
   ];
   const ok = allow.some((a) => model.includes(a) || model.endsWith(":free"));
   if (!ok) {
