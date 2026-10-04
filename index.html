@@ -112,10 +112,8 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
     } catch (e) {
       throw new Error("gzip gagal — chunk tidak utuh. Hard refresh atau redeploy.");
     }
-    // Always force latest extras (cache-bust)
     html = html.replace(/<script[^>]*extras(?:-ui)?\.js[^>]*><\/script>/gi, "");
-    html = html.replace(/<\/body>/i,
-      '<script src="./extras.js?v=55"><\/script><script src="./extras-ui.js?v=55"><\/script></body>');
+    html = html.replace(/<\/body>/i, '<script src="./extras.js?v=56"><\/script><script src="./extras-ui.js?v=56"><\/script></body>');
     progress(100);
     status("Siap");
     var elapsed = Date.now() - t0;
