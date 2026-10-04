@@ -2,57 +2,132 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>RolxDesk</title>
-<style>body{margin:0;background:#0a0a0a;color:#eee;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;padding:16px;text-align:center}</style>
+<link rel="icon" href="data:,"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple-system,sans-serif}
+#rd-boot{
+  position:fixed;inset:0;z-index:99999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 80% 60% at 50% 45%,#12141a 0%,#070708 70%);
+}
+.rd-mark{display:flex;align-items:flex-end;gap:.08em;user-select:none;position:relative;z-index:2}
+.rd-letter{
+  font-weight:800;font-size:clamp(64px,18vw,120px);line-height:1;
+  letter-spacing:-.04em;color:#f4f4f6;
+  text-shadow:0 0 40px rgba(124,106,247,.4);
+  transform:scale(0);opacity:0;
+}
+.rd-letter.r{animation:rdSlamR .55s cubic-bezier(.15,1.45,.35,1) .06s forwards}
+.rd-letter.d{animation:rdSlamD .55s cubic-bezier(.15,1.45,.35,1) .2s forwards}
+@keyframes rdSlamR{
+  0%{transform:scale(0) rotate(-18deg) translateY(-42px);opacity:0}
+  55%{transform:scale(1.2) rotate(5deg);opacity:1}
+  78%{transform:scale(.93) rotate(-2deg)}
+  100%{transform:scale(1) rotate(0);opacity:1}
+}
+@keyframes rdSlamD{
+  0%{transform:scale(0) rotate(16deg) translateY(40px);opacity:0}
+  55%{transform:scale(1.18) rotate(-4deg);opacity:1}
+  78%{transform:scale(.94) rotate(2deg)}
+  100%{transform:scale(1) rotate(0);opacity:1}
+}
+.rd-flash{
+  position:absolute;width:min(280px,70vw);height:min(280px,70vw);border-radius:50%;
+  background:radial-gradient(circle,rgba(124,106,247,.5) 0%,transparent 70%);
+  opacity:0;pointer-events:none;animation:rdFlash .65s ease-out .32s forwards;
+}
+@keyframes rdFlash{
+  0%{transform:scale(.25);opacity:0}
+  35%{opacity:.9}
+  100%{transform:scale(1.7);opacity:0}
+}
+.rd-shock{
+  position:absolute;width:130px;height:3px;border-radius:2px;
+  background:linear-gradient(90deg,transparent,#a89cff,transparent);
+  opacity:0;animation:rdShock .38s ease-out .45s forwards;
+}
+@keyframes rdShock{
+  0%{transform:scaleX(.15);opacity:0}
+  45%{opacity:1;transform:scaleX(1.5)}
+  100%{opacity:0;transform:scaleX(2)}
+}
+#rd-boot-status{margin-top:28px;font-size:13px;color:#8b8b98;letter-spacing:.03em;min-height:1.2em;text-align:center;padding:0 16px}
+#rd-boot-bar{margin-top:14px;width:min(200px,50vw);height:3px;border-radius:2px;background:#1c1c24;overflow:hidden}
+#rd-boot-bar>i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#7c6af7,#1a7f64);transition:width .22s ease}
+</style>
 </head>
 <body>
-<div id="s">Memuat RolxDesk…</div>
+<div id="rd-boot">
+  <div class="rd-flash" aria-hidden="true"></div>
+  <div class="rd-shock" aria-hidden="true"></div>
+  <div class="rd-mark" aria-label="RolxDesk">
+    <span class="rd-letter r">R</span>
+    <span class="rd-letter d">D</span>
+  </div>
+  <div id="rd-boot-status">Memuat…</div>
+  <div id="rd-boot-bar"><i id="rd-boot-fill"></i></div>
+</div>
 <script>
-(async function() {
-  const n = 8;
-  const status = (m) => { document.getElementById("s").textContent = m; };
-  let b64 = "";
-  for (let i = 0; i < n; i++) {
-    status("Memuat ui.p" + i + ".b64…");
-    const r = await fetch("./ui.p" + i + ".b64?v=" + Date.now());
-    if (!r.ok) throw new Error("Gagal muat ui.p" + i + ".b64 (HTTP " + r.status + ")");
-    const chunk = (await r.text()).replace(/\s+/g, "");
-    if (!chunk) throw new Error("ui.p" + i + ".b64 kosong");
-    if (!/^[A-Za-z0-9+/]+=*$/.test(chunk)) throw new Error("ui.p" + i + ".b64 bukan base64 valid");
-    b64 += chunk;
-  }
-  status("Decode… (" + b64.length + " chars)");
-  if (b64.length % 4 !== 0) {
-    b64 += "=".repeat((4 - (b64.length % 4)) % 4);
-  }
-  let bin;
+(async function () {
+  var statusEl = document.getElementById("rd-boot-status");
+  var fill = document.getElementById("rd-boot-fill");
+  var t0 = Date.now();
+  var MAX_MS = 3000;
+  function status(m) { if (statusEl) statusEl.textContent = m; }
+  function progress(p) { if (fill) fill.style.width = Math.min(100, Math.max(0, p)) + "%"; }
+
   try {
-    const raw = atob(b64);
-    bin = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
-  } catch (e) {
-    throw new Error("atob gagal — base64 rusak (" + b64.length + " chars). Coba hard refresh.");
+    var n = 8, b64 = "";
+    for (var i = 0; i < n; i++) {
+      status("Modul " + (i + 1) + "/" + n);
+      progress((i / n) * 80);
+      var r = await fetch("./ui.p" + i + ".b64?v=" + Date.now());
+      if (!r.ok) throw new Error("Gagal muat ui.p" + i + ".b64 (HTTP " + r.status + ")");
+      var chunk = (await r.text()).replace(/\s+/g, "");
+      if (!chunk) throw new Error("ui.p" + i + ".b64 kosong");
+      if (!/^[A-Za-z0-9+/]+=*$/.test(chunk)) throw new Error("ui.p" + i + ".b64 bukan base64 valid");
+      b64 += chunk;
+    }
+    progress(85);
+    status("Decode…");
+    if (b64.length % 4 !== 0) b64 += "=".repeat((4 - (b64.length % 4)) % 4);
+    var bin;
+    try {
+      var raw = atob(b64);
+      bin = new Uint8Array(raw.length);
+      for (var j = 0; j < raw.length; j++) bin[j] = raw.charCodeAt(j);
+    } catch (e) {
+      throw new Error("atob gagal — base64 rusak (" + b64.length + " chars). Hard refresh.");
+    }
+    progress(92);
+    status("Decompress…");
+    var html;
+    try {
+      var ds = new DecompressionStream("gzip");
+      var stream = new Blob([bin]).stream().pipeThrough(ds);
+      html = await new Response(stream).text();
+    } catch (e) {
+      throw new Error("gzip gagal — chunk tidak utuh. Hard refresh atau redeploy.");
+    }
+    if (!/extras\.js/.test(html)) {
+      html = html.replace(/<\/body>/i, '<script src="./extras.js"><\/script></body>');
+    }
+    progress(100);
+    status("Siap");
+    var elapsed = Date.now() - t0;
+    var wait = Math.max(0, Math.min(900, MAX_MS) - elapsed);
+    await new Promise(function (res) { setTimeout(res, wait); });
+    document.open();
+    document.write(html);
+    document.close();
+  } catch (err) {
+    status("Gagal: " + (err && err.message || err));
+    console.error(err);
   }
-  status("Decompress gzip…");
-  let html;
-  try {
-    const ds = new DecompressionStream("gzip");
-    const stream = new Blob([bin]).stream().pipeThrough(ds);
-    html = await new Response(stream).text();
-  } catch (e) {
-    throw new Error("gzip gagal — chunk tidak utuh. Hard refresh atau redeploy.");
-  }
-  if (!/extras\.js/.test(html)) {
-    html = html.replace(/<\/body>/i, '<script src="./extras.js"><\/script></body>');
-  }
-  document.open();
-  document.write(html);
-  document.close();
-})().catch(e => {
-  document.getElementById("s").textContent = "Gagal: " + e.message;
-  console.error(e);
-});
+})();
 </script>
 </body>
 </html>
