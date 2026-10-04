@@ -112,8 +112,12 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
     } catch (e) {
       throw new Error("gzip gagal — chunk tidak utuh. Hard refresh atau redeploy.");
     }
+    // always ensure extras + extras-ui
     if (!/extras\.js/.test(html)) {
       html = html.replace(/<\/body>/i, '<script src="./extras.js"><\/script></body>');
+    }
+    if (!/extras-ui\.js/.test(html)) {
+      html = html.replace(/<\/body>/i, '<script src="./extras-ui.js"><\/script></body>');
     }
     progress(100);
     status("Siap");
