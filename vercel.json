@@ -4,14 +4,16 @@
   "rewrites": [
     { "source": "/api/manus", "destination": "/api/manus" },
     { "source": "/api/venice", "destination": "/api/venice" },
-    { "source": "/api/spotify-refresh", "destination": "/api/spotify-refresh" }
+    { "source": "/api/spotify-refresh", "destination": "/api/spotify-refresh" },
+    { "source": "/api/hosted-models", "destination": "/api/hosted-chat" },
+    { "source": "/api/yt-channel", "destination": "/api/yt-search" }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-RD-Build", "value": "v56-2026-10-04" }
+        { "key": "X-RD-Build", "value": "v56-fn12-fix" }
       ]
     }
   ]
