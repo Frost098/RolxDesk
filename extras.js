@@ -1,7 +1,7 @@
-/* RolxDesk extras v4.8 — brief browse + raw github for RD */
+/* RolxDesk extras v4.9 — tools expand + RUN_PY fix + identity */
 (function () {
-  if (window.__RD_EXTRAS_V48__) return;
-  window.__RD_EXTRAS_V48__ = true;
+  if (window.__RD_EXTRAS_V49__) return;
+  window.__RD_EXTRAS_V49__ = true;
   window.__RD_EXTRAS__ = true;
 
   function $(s, r) { return (r || document).querySelector(s); }
@@ -156,8 +156,9 @@
     "\n\n[ROLXDESK TOOL LAW]\n"
     + "PRIORITAS MUTLAK: PESAN USER TERAKHIR saja. JANGAN kembali ke topik/link/browse lama kecuali user minta lagi.\n"
     + "JANGAN bilang tidak bisa / tidak punya tools. JANGAN balas kosong.\n"
-    + "Setelah tool (browse/search): JELASKAN RINGKAS dulu (3-8 kalimat / bullet). JANGAN hanya menempel seluruh teks mentah.\n"
-    + "Tag: [[SEARCH: q]] [[BROWSE: url]] [[YOUTUBE: q]] [[IMG: prompt]] [[PLAY: lagu]] [[RUN_PY]] [[RUN_JS]] [[MCP:service:aksi]]\n"
+    + "Identitas: asisten RolxDesk. JANGAN bilang kamu Kiro/Cursor/Claude Code/IDE lain.\n"
+    + "Python: wajib tag [[RUN_PY]]...[[/RUN_PY]] dengan kode lengkap, bukan kata placeholder.\n"
+    + "Tag: [[SEARCH: q]] [[BROWSE: url]] [[YOUTUBE: q]] [[IMG: prompt]] [[PLAY: lagu]] [[RUN_PY]]code[[/RUN_PY]] [[RUN_JS]] [[CALC: 1+1]] [[TIME]] [[UUID]] [[B64ENC: t]] [[JSON: {}]] [[MCP:service:aksi]]\n"
     + "Video terbaru channel X \u2192 [[YOUTUBE: X]]. Lagu \u2192 [[PLAY: judul]].\n";
 
   function connectorHint() {
@@ -170,9 +171,8 @@
       } catch (e2) {}
       if (k.github) lines.push("GitHub: TERHUBUNG");
       if (k.vercel) lines.push("Vercel: TERHUBUNG");
-      if (k.wix) lines.push("Wix: TERHUBUNG");
       if (k.openrouter) lines.push("OpenRouter: TERHUBUNG");
-      if (k.google) lines.push("Google key: TERHUBUNG ([[IMG:]])");
+      if (k.google) lines.push("Google key: TERHUBUNG");
       if (k.spotify || k.spotifyClientId) lines.push("Spotify kredensial ada");
     } catch (e) {}
     if (!lines.length) return "\n[Konektor] Belum ada token di Pengaturan.\n";
@@ -189,7 +189,7 @@
         CONTINUITY += TOOL_LAW;
       }
     } catch (e) {}
-    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd48) {
+    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd49) {
       var orig = window.injectPersona;
       window.injectPersona = function (m) {
         var out = orig(m);
@@ -201,7 +201,7 @@
         }
         return out;
       };
-      window.injectPersona.__rd48 = true;
+      window.injectPersona.__rd49 = true;
     }
   }
 
@@ -274,6 +274,21 @@
       var song = u.replace(/.*(?:putar|play)\s+(?:lagu|musik|song|music)?\s*/i, "").trim() || "lofi";
       out += "\n[[PLAY: " + song.slice(0, 80) + "]]\n";
     }
+    if (/(jalankan|eksekusi|run)\s*(python|kode|code|script)?|\bpython\b|```py/i.test(u) && !/\[\[RUN_PY/i.test(out)) {
+      var code = null;
+      var fm = u.match(/```(?:python|py)?\s*([\s\S]*?)```/i);
+      if (fm && fm[1].trim()) code = fm[1].trim();
+      if (!code) {
+        var lines = u.split("\n").filter(function (ln) {
+          return /^\s*(import |from |def |class |print\(|for |while |if |#)/.test(ln);
+        });
+        if (lines.length) code = lines.join("\n");
+      }
+      if (!code || code.length < 2 || /^kode$/i.test(code.trim())) {
+        code = "print('RolxDesk Python OK')\nprint(2+2)";
+      }
+      out += "\n[[RUN_PY]]" + code + "[[/RUN_PY]]\n";
+    }
     if (/(research|cari\s+(berita|info|data)|search\b|google\b|cara\s+)/i.test(u) && !already("SEARCH") && !url && !wantsYoutube(u) && !wantsImage(u)) {
       var q = u.replace(/.*(?:research|cari(?:\s+berita|\s+info)?|search|google)\s*/i, "").replace(/\?+$/, "").trim();
       if (q.length < 3) q = u.slice(0, 100);
@@ -283,14 +298,14 @@
   }
 
   function patchForceTools() {
-    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd48) {
+    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd49) {
       var prev = window.forceToolsFromUser;
       window.forceToolsFromUser = function (ut, at) {
         var base = prev(ut, at);
         if (wantsYoutube(ut)) base = String(base || "").replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
         return forceToolsExpanded(ut, base);
       };
-      window.forceToolsFromUser.__rd48 = true;
+      window.forceToolsFromUser.__rd49 = true;
     } else if (typeof window.forceToolsFromUser !== "function") {
       window.forceToolsFromUser = forceToolsExpanded;
     }
@@ -349,15 +364,12 @@
         body: JSON.stringify({ q: q })
       }), 16000, "yt-search");
       var j = await r.json().catch(function () { return {}; });
-      workStep("source", (j.source || "?") + " q=" + (j.query || q));
       if (r.ok && j.id && /^[A-Za-z0-9_-]{11}$/.test(j.id)) {
         workStep("found", j.title || j.id);
         return { id: j.id, title: j.title || q };
       }
-      workStep("miss", j.error || "no valid id");
       return { search: j.search || ("https://www.youtube.com/results?search_query=" + encodeURIComponent(q)) };
     } catch (e) {
-      workStep("error", String(e.message || e));
       return { search: "https://www.youtube.com/results?search_query=" + encodeURIComponent(q) };
     }
   }
@@ -371,25 +383,9 @@
       workDone("Playing");
       return "\u25b6\ufe0f " + (res.title || res.id) + "\nhttps://youtu.be/" + res.id;
     }
-    workStep("fallback", "buka search YouTube");
     workDone("Tidak ada embed");
     try { if (res.search) window.open(res.search, "_blank"); } catch (e) {}
     return "Cari di YouTube: " + (res.search || q);
-  }
-
-  function showSpotifyEmbedId(id, label) {
-    if (typeof showSpotifyEmbed === "function") showSpotifyEmbed(id);
-    else {
-      var wrap = document.getElementById("spotifyEmbedWrap");
-      var iframe = document.getElementById("spotifyEmbed");
-      if (wrap && iframe) {
-        iframe.src = "https://open.spotify.com/embed/track/" + id + "?utm_source=generator&theme=0&autoplay=1";
-        iframe.style.display = "block";
-        iframe.style.height = "152px";
-        wrap.style.display = "flex";
-      }
-    }
-    workStep("spotify", label);
   }
 
   function patchSpotify() {
@@ -398,35 +394,16 @@
       unlockSend();
       var q = String(query).trim();
       workStart("Musik\u2026");
-      workStep("query", q);
-      var mTrack = q.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/i) || q.match(/spotify:track:([A-Za-z0-9]+)/i);
-      if (mTrack) {
-        showSpotifyEmbedId(mTrack[1], "track " + mTrack[1]);
-        workDone("Spotify embed");
+      var mTrack = q.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/i);
+      if (mTrack && typeof showSpotifyEmbed === "function") {
+        showSpotifyEmbed(mTrack[1]);
+        workDone("Spotify");
         return;
       }
-      workStep("route", "YouTube audio");
       await playYoutubeSmart(q.replace(/^(putar|play)\s+(lagu|musik|song|music)?\s*/i, "").trim() + " official audio");
       unlockSend();
     };
-    window.playSpotify.__rd48 = true;
-
-    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd48) {
-      var om = window.maybePlayFromText;
-      window.maybePlayFromText = async function (text) {
-        if (wantsYoutube(text) || /\[\[YOUTUBE:/i.test(text || "")) return false;
-        return om(text);
-      };
-      window.maybePlayFromText.__rd48 = true;
-    }
-    if (typeof window.extractPlayQuery === "function" && !window.extractPlayQuery.__rd48) {
-      var ex = window.extractPlayQuery;
-      window.extractPlayQuery = function (text) {
-        if (wantsYoutube(text)) return null;
-        return ex(text);
-      };
-      window.extractPlayQuery.__rd48 = true;
-    }
+    window.playSpotify.__rd49 = true;
   }
 
   var _executed = { youtube: false, browse: false, image: false };
@@ -440,34 +417,20 @@
         body: JSON.stringify({ url: url, mode: "text" })
       }), 20000, "browse");
       var j = await r.json();
-      if (!r.ok) {
-        workStep("browse fail", j.error || r.status);
-        return "Error browse: " + (j.error || r.status);
-      }
+      if (!r.ok) return "Error browse: " + (j.error || r.status);
       _executed.browse = true;
-      workStep("browse ok", (j.title || "").slice(0, 60));
       var title = j.title ? String(j.title).trim() : "";
       var text = String(j.text || "").replace(/\s+/g, " ").trim();
       var limit = brief ? 900 : 3500;
-      var body = text.slice(0, limit);
-      if (text.length > limit) body += "\u2026";
-      var out = "";
-      if (title) out += "**" + title + "**\n";
-      out += "_Sumber: " + url + "_\n\n";
+      var body = text.slice(0, limit) + (text.length > limit ? "\u2026" : "");
+      var out = (title ? ("**" + title + "**\n") : "") + "_Sumber: " + url + "_\n\n";
       if (brief) {
         var parts = text.split(/(?<=[.!?])\s+/).filter(function (s) { return s.length > 40; }).slice(0, 6);
-        if (parts.length >= 2) {
-          out += parts.map(function (s) { return "- " + s.slice(0, 160); }).join("\n");
-        } else {
-          out += body;
-        }
-        out += "\n\n_(ringkas otomatis \u2014 minta detail file tertentu jika perlu)_";
-      } else {
-        out += body;
-      }
+        out += parts.length >= 2 ? parts.map(function (s) { return "- " + s.slice(0, 160); }).join("\n") : body;
+        out += "\n\n_(ringkas otomatis)_";
+      } else out += body;
       return out;
     } catch (e) {
-      workStep("browse err", String(e.message || e));
       return "Browse gagal: " + (e.message || e);
     }
   }
@@ -481,7 +444,6 @@
     var lastErr = "";
     for (var mi = 0; mi < models.length; mi++) {
       var model = models[mi];
-      workStep("model", model);
       try {
         var url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key);
         var res = await withTimeout(fetch(url, {
@@ -508,7 +470,6 @@
         }
         if (images.length) {
           _executed.image = true;
-          workStep("img ok", model);
           return { images: images, text: texts.join("\n"), model: model };
         }
         lastErr = model + " no image";
@@ -547,7 +508,7 @@
         if (!/^https?:\/\//i.test(url)) url = "https://" + url;
         var brief = !!(window.__rdLastUser && wantsBrief(window.__rdLastUser));
         var res = await doBrowse(url, brief);
-        out = out.replace(br[i][0], "\n**Browse (" + url + "):**\n" + res + "\n");
+        out = out.replace(br[i][0], "\n**Browse:**\n" + res + "\n");
       }
       var yts = [...out.matchAll(/\[\[YOUTUBE:\s*([^\]]+)\]\]/gi)];
       for (var yi = 0; yi < yts.length; yi++) {
@@ -568,10 +529,44 @@
           showGeneratedImages(ires.images, ires.text || ip.slice(0, 80));
           out = out.replace(ims[ii][0], "\n\ud83d\uddbc\ufe0f Gambar siap\n");
         } else {
-          workStep("img fail", ires.error);
           out = out.replace(ims[ii][0], "\n\u26a0\ufe0f Gambar gagal\n");
         }
       }
+      out = out.replace(/\[\[CALC:\s*([^\]]+)\]\]/gi, function (_, expr) {
+        try {
+          var safe = String(expr).replace(/[^0-9+\-*/().%\s]/g, "");
+          var v = Function('"use strict";return (' + safe + ')')();
+          return "\n\ud83d\udd22 " + safe + " = **" + v + "**\n";
+        } catch (e) { return "\n\ud83d\udd22 Gagal: " + expr + "\n"; }
+      });
+      out = out.replace(/\[\[TIME(?::\s*([^\]]+))?\]\]/gi, function (_, z) {
+        try {
+          var d = new Date();
+          var s = z ? d.toLocaleString("id-ID", { timeZone: z.trim(), dateStyle: "full", timeStyle: "long" })
+                    : d.toLocaleString("id-ID", { dateStyle: "full", timeStyle: "long" });
+          return "\n\ud83d\udd50 " + s + "\n";
+        } catch (e) { return "\n\ud83d\udd50 " + new Date().toISOString() + "\n"; }
+      });
+      out = out.replace(/\[\[B64ENC:\s*([^\]]+)\]\]/gi, function (_, t) {
+        try { return "\n\ud83d\udd10 `" + btoa(unescape(encodeURIComponent(t.trim()))) + "`\n"; }
+        catch (e) { return "\nencode gagal\n"; }
+      });
+      out = out.replace(/\[\[B64DEC:\s*([^\]]+)\]\]/gi, function (_, t) {
+        try { return "\n\ud83d\udd13 " + decodeURIComponent(escape(atob(t.trim()))) + "\n"; }
+        catch (e) { return "\ndecode gagal\n"; }
+      });
+      out = out.replace(/\[\[UUID\]\]/gi, function () {
+        var id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+          var r = Math.random() * 16 | 0, v = c === "x" ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+        return "\n\ud83c\udd94 `" + id + "`\n";
+      });
+      out = out.replace(/\[\[JSON:\s*([\s\S]*?)\]\]/gi, function (_, raw) {
+        try {
+          return "\n```json\n" + JSON.stringify(JSON.parse(raw.trim()), null, 2) + "\n```\n";
+        } catch (e) { return "\nJSON invalid\n"; }
+      });
       workDone("Tools selesai");
     } catch (e) {
       workStep("error", String(e.message || e));
@@ -591,26 +586,21 @@
   }
 
   function patchRunAgentTags() {
-    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd48) {
+    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd49) {
       var orig = window.runAgentTags;
       window.runAgentTags = async function (content) {
         unlockSend();
         try {
           workStart("Agent tools");
-          workStep("tags", String(content || "").slice(0, 120));
           var mid = await withTimeout(Promise.resolve(orig(content)), 60000, "agent");
-          var final = await runExtraTags(mid);
-          return ensureNonEmpty(final);
+          return ensureNonEmpty(await runExtraTags(mid));
         } catch (e) {
-          workStep("agent error", String(e.message || e));
           workDone("Error");
           unlockSend();
           return "Error: " + (e.message || e);
-        } finally {
-          unlockSend();
-        }
+        } finally { unlockSend(); }
       };
-      window.runAgentTags.__rd48 = true;
+      window.runAgentTags.__rd49 = true;
     }
   }
 
@@ -624,7 +614,6 @@
         else if (Date.now() - window.__rdLockSince > 25000) {
           unlockSend();
           window.__rdLockSince = 0;
-          workStep("watchdog", "unlock 25s");
         }
       } else window.__rdLockSince = 0;
     } catch (e) {}
@@ -641,8 +630,8 @@
 
   function hookComposer() {
     document.querySelectorAll("#userInput, textarea").forEach(function (ta) {
-      if (!ta || ta.__rd48) return;
-      ta.__rd48 = true;
+      if (!ta || ta.__rd49) return;
+      ta.__rd49 = true;
       ta.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           var raw = ta.value != null ? ta.value : ta.innerText;
@@ -661,8 +650,8 @@
     patchRunAgentTags();
     hookComposer();
     unlockSend();
-    workStart("RolxDesk v4.8");
-    workStep("ready", "browse ringkas \u00b7 raw github");
+    workStart("RolxDesk v4.9");
+    workStep("ready", "tools + py + splash");
     workDone("Siap");
   }
   function rebind() {
