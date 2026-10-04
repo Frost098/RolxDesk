@@ -1,6 +1,7 @@
-/* RolxDesk extras-ui v5.5b — sidebar YouTuber, hosted family, smart model map */
+/* RolxDesk extras-ui v5.6 — free models Oct2026, logo SVG, sidebar YTuber */
 (function () {
-  if (window.__RD_EXTRAS_UI55B__) return;
+  if (window.__RD_EXTRAS_UI56__) return;
+  window.__RD_EXTRAS_UI56__ = true;
   window.__RD_EXTRAS_UI55B__ = true;
   window.__RD_EXTRAS_UI55__ = true;
   window.__RD_EXTRAS_UI54__ = true;
@@ -20,9 +21,9 @@
   }
 
   function injectCSS() {
-    if ($("#rd-ui55b-css")) return;
+    if ($("#rd-ui56-css")) return;
     var s = document.createElement("style");
-    s.id = "rd-ui55b-css";
+    s.id = "rd-ui56-css";
     s.textContent = [
       "#rd-cam-btn{position:fixed;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:10040;width:46px;height:46px;border-radius:50%;border:1px solid #5a5a68;background:rgba(20,20,28,.98);color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.55);display:flex!important;align-items:center;justify-content:center}",
       "#rd-cam-panel{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}",
@@ -46,7 +47,8 @@
       "#rd-ytuber-panel .rd-yp-item .meta span{font-size:12px;color:#999}",
       "#rd-ytuber-panel .rd-yp-item .del{background:transparent;border:0;color:#f66;font-size:18px}",
       "#rd-ytuber-fab{position:fixed;top:max(12px,env(safe-area-inset-top));right:max(64px,env(safe-area-inset-right)+52px);z-index:10040;width:46px;height:46px;border-radius:50%;border:1px solid #5a5a68;background:rgba(20,20,28,.98);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.55)}",
-      "#rd-ytuber-nav.nav-item{display:block;width:100%;text-align:left}"
+      ".rd-prov{display:inline-flex;align-items:center;margin-right:6px;vertical-align:middle}",
+      ".rd-prov svg{width:18px;height:18px;display:block}"
     ].join("");
     document.head.appendChild(s);
   }
@@ -89,8 +91,7 @@
       var c = document.createElement("canvas");
       c.width = video.videoWidth; c.height = video.videoHeight;
       c.getContext("2d").drawImage(video, 0, 0);
-      var dataUrl = c.toDataURL("image/jpeg", 0.85);
-      var b64 = dataUrl.split(",")[1] || "";
+      var b64 = (c.toDataURL("image/jpeg", 0.85).split(",")[1]) || "";
       if (window.state) {
         state._pendingImages = state._pendingImages || [];
         state._pendingImages.push({ mime: "image/jpeg", data: b64 });
@@ -238,13 +239,31 @@
     }
   }
 
+  var FREE_POOL = [
+    { id: "qwen/qwen3.8-27b:free", name: "RD Qwen3.8 27B" },
+    { id: "google/gemma-4-31b-it:free", name: "RD Gemma 4 31B" },
+    { id: "google/gemma-4-26b-a4b-it:free", name: "RD Gemma 4 26B" },
+    { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "RD Nemotron Super" },
+    { id: "nvidia/nemotron-3.5-lightning:free", name: "RD Nemotron Lightning" },
+    { id: "cohere/north-mini-code:free", name: "RD North Mini Code" },
+    { id: "thinkingmachines/inkling:free", name: "RD Inkling" },
+    { id: "openrouter/free", name: "RD Free Auto" }
+  ];
+
   function patchBrokenModels() {
     try {
       if (typeof MODELS === "undefined") return;
       var REPL = {
-        "nex-agi/nex-n2.5-mini:free": { id: "deepseek/deepseek-r1:free", name: "Grok-like \u00b7 DeepSeek R1" },
-        "nex-agi/nex-n2.5-pro:free": { id: "deepseek/deepseek-r1:free", name: "Grok-like \u00b7 DeepSeek R1" },
-        "nex-agi/nex-n2.5-mini": { id: "deepseek/deepseek-r1:free", name: "Grok-like \u00b7 DeepSeek R1" }
+        "nex-agi/nex-n2.5-mini:free": { id: "thinkingmachines/inkling:free", name: "Grok-like \u00b7 Inkling" },
+        "nex-agi/nex-n2.5-pro:free": { id: "thinkingmachines/inkling:free", name: "Grok-like \u00b7 Inkling" },
+        "nex-agi/nex-n2.5-mini": { id: "thinkingmachines/inkling:free", name: "Grok-like \u00b7 Inkling" },
+        "deepseek/deepseek-r1:free": { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "Reasoning \u00b7 Nemotron Super" },
+        "deepseek/deepseek-chat:free": { id: "qwen/qwen3.8-27b:free", name: "Chat \u00b7 Qwen3.8" },
+        "meta-llama/llama-3.3-70b-instruct:free": { id: "qwen/qwen3.8-27b:free", name: "Llama-like \u00b7 Qwen3.8" },
+        "meta-llama/llama-3.1-70b-instruct:free": { id: "qwen/qwen3.8-27b:free", name: "Llama-like \u00b7 Qwen3.8" },
+        "qwen/qwen-2.5-72b-instruct:free": { id: "qwen/qwen3.8-27b:free", name: "Qwen3.8 27B" },
+        "google/gemma-3-27b-it:free": { id: "google/gemma-4-31b-it:free", name: "Gemma 4 31B" },
+        "mistralai/mistral-small-3.1-24b-instruct:free": { id: "cohere/north-mini-code:free", name: "North Mini Code" }
       };
       Object.keys(MODELS).forEach(function (fam) {
         (MODELS[fam] || []).forEach(function (m) {
@@ -252,17 +271,14 @@
           if (r) { m.id = r.id; m.name = r.name; }
         });
       });
-      MODELS.hosted = [
-        { id: "openrouter/free", name: "RD Free Auto" },
-        { id: "deepseek/deepseek-r1:free", name: "RD DeepSeek R1" },
-        { id: "google/gemma-3-27b-it:free", name: "RD Gemma" },
-        { id: "meta-llama/llama-3.3-70b-instruct:free", name: "RD Llama 3.3" },
-        { id: "qwen/qwen-2.5-72b-instruct:free", name: "RD Qwen 2.5" }
-      ];
+      MODELS.hosted = FREE_POOL.slice();
       var ms = $("#modelSelect");
-      if (ms && /nex-agi\/nex-n2/i.test(ms.value)) {
-        ms.value = "deepseek/deepseek-r1:free";
-        if (window.state) state.selectedModel = "deepseek/deepseek-r1:free";
+      if (ms) {
+        var v = ms.value || "";
+        if (REPL[v]) {
+          ms.value = REPL[v].id;
+          if (window.state) state.selectedModel = REPL[v].id;
+        }
       }
     } catch (e) {}
   }
@@ -278,16 +294,63 @@
       if (custom) fam.insertBefore(opt, custom);
       else fam.appendChild(opt);
     }
+    try { if (typeof MODELS !== "undefined") MODELS.hosted = FREE_POOL.slice(); } catch (e) {}
+    if (!fam.__rdHosted56) {
+      fam.__rdHosted56 = true;
+      fam.addEventListener("change", function () {
+        if (fam.value === "hosted") {
+          var ms = $("#modelSelect");
+          if (!ms) return;
+          ms.innerHTML = FREE_POOL.map(function (m) {
+            return '<option value="' + m.id + '">' + m.name + "</option>";
+          }).join("");
+        }
+      });
+    }
+  }
+
+  function providerSvg(kind) {
+    var k = String(kind || "").toLowerCase();
+    if (/gemini|google|gemma/.test(k))
+      return '<svg viewBox="0 0 24 24"><defs><linearGradient id="gm56" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#1a73e8"/><stop offset="1" stop-color="#c58bff"/></linearGradient></defs><path fill="url(#gm56)" d="M12 1.5L14.2 9.5 22 12 14.2 14.5 12 22.5 9.8 14.5 2 12 9.8 9.5z"/></svg>';
+    if (/grok|xai|inkling/.test(k))
+      return '<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 3.2c-3.8 0-6.8 2.6-6.8 6.2 0 2.4 1.3 4.5 3.4 5.5L6.2 20h2.6l2.2-4.2c.3.05.7.08 1 .08 3.8 0 6.8-2.6 6.8-6.2S15.8 3.2 12 3.2zm0 2.2c2.5 0 4.4 1.6 4.4 4s-1.9 4-4.4 4-4.4-1.6-4.4-4 1.9-4 4.4-4z"/><path stroke="#fff" stroke-width="1.6" stroke-linecap="round" d="M5 19.5L19 4.5"/></svg>';
+    if (/claude|anthropic/.test(k))
+      return '<svg viewBox="0 0 24 24"><g fill="#D97757"><path d="M12 2l1.1 5.2L16 3.5l-1.2 4.2 4.5-2.2-3.2 3.5 5 .2-4.5 2.2 4.2 2.8-5-.5 2.8 4.2-4.2-2.8.2 5-3.5-3.2-2.2 4.5.2-5-2.8 4.2-2.2-4.5-3.5 3.2.2-5L3.5 16l2.8-4.2-5-.2 4.2-2.8L1 8.5l5-.2L2.8 4.8l4.5 2.2L6 3.5l2.9 3.7z"/></g></svg>';
+    if (/qwen/.test(k))
+      return '<svg viewBox="0 0 24 24"><path fill="#5B5BD6" d="M12 2.5L18.5 6v5.5L12 15.5 5.5 11.5V6L12 2.5z"/><path fill="#7B7BF0" d="M12 8.5l4 2.3v4.5l-4 2.3-4-2.3v-4.5L12 8.5z"/><path fill="#fff" opacity=".9" d="M12 9.8l2.8 1.6v3.2L12 16.2l-2.8-1.6v-3.2L12 9.8z"/></svg>';
+    if (/nvidia|nemotron/.test(k))
+      return '<svg viewBox="0 0 24 24"><path fill="#76B900" d="M2 12c3.5-5.5 8-7.5 10-7.5S18.5 6.5 22 12c-3.5 5.5-8 7.5-10 7.5S5.5 17.5 2 12z"/><ellipse cx="12" cy="12" rx="3.2" ry="3.5" fill="#111"/><circle cx="12.5" cy="11.5" r="1.1" fill="#76B900"/></svg>';
+    if (/kimi|moonshot/.test(k))
+      return '<svg viewBox="0 0 24 24"><path fill="#2B7FFF" d="M16.5 4.5c2.5 0 4.5 1.8 4.5 4.1 0 2.2-1.8 4-4.2 4.1l-.8.05-1.5 2.2 0-2.1c-2.3-.2-4-1.9-4-4.15 0-2.3 2-4.2 5.5-4.2z"/></svg>';
+    if (/cohere|north/.test(k))
+      return '<svg viewBox="0 0 24 24"><ellipse cx="13" cy="8" rx="7" ry="5.5" fill="#2d4a3e"/><circle cx="7" cy="16.5" r="3.2" fill="#f0745a"/><ellipse cx="16.5" cy="16" rx="5" ry="4" fill="#c9a0e8"/></svg>';
+    if (/openrouter|hosted|rd free|free auto/.test(k))
+      return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#f59e0b" stroke-width="1.8"/><path d="M8 12h8M12 8v8" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    if (/venice/.test(k))
+      return '<svg viewBox="0 0 24 24"><path d="M4 16c4-8 12-8 16 0" fill="none" stroke="#a78bfa" stroke-width="1.8"/><circle cx="12" cy="9" r="3" fill="#a78bfa"/></svg>';
+    if (/manus/.test(k))
+      return '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="#5eead4" stroke-width="1.6"/></svg>';
+    if (/custom|9router|router/.test(k))
+      return '<svg viewBox="0 0 24 24"><path d="M5 12h14M9 8l-4 4 4 4M15 8l4 4-4 4" fill="none" stroke="#34d399" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    return '<svg viewBox="0 0 24 24"><text x="4" y="16" font-size="10" font-weight="700" fill="#a89cff">RD</text></svg>';
+  }
+
+  function decorateModelSelects() {
     try {
-      if (typeof MODELS !== "undefined" && !MODELS.hosted) {
-        MODELS.hosted = [
-          { id: "openrouter/free", name: "RD Free Auto" },
-          { id: "deepseek/deepseek-r1:free", name: "RD DeepSeek R1" },
-          { id: "google/gemma-3-27b-it:free", name: "RD Gemma" },
-          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "RD Llama 3.3" },
-          { id: "qwen/qwen-2.5-72b-instruct:free", name: "RD Qwen 2.5" }
-        ];
-      }
+      var fam = $("#familySelect");
+      var mod = $("#modelSelect");
+      [fam, mod].forEach(function (sel) {
+        if (!sel || sel.__rdIcon56) return;
+        sel.__rdIcon56 = true;
+        var wrap = el("span", { class: "rd-prov", id: "rd-prov-" + sel.id });
+        wrap.innerHTML = providerSvg(sel.value || (fam && fam.value) || "");
+        if (sel.parentNode) sel.parentNode.insertBefore(wrap, sel);
+        sel.addEventListener("change", function () {
+          var w = $("#rd-prov-" + sel.id);
+          if (w) w.innerHTML = providerSvg(sel.value || (fam && fam.value));
+        });
+      });
     } catch (e) {}
   }
 
@@ -297,6 +360,7 @@
     injectYtuberMenu();
     patchBrokenModels();
     injectHostedFamily();
+    decorateModelSelects();
     if (!window.__rdYtPoll) {
       window.__rdYtPoll = setInterval(pollYtubers, 180000);
       setTimeout(pollYtubers, 8000);
@@ -306,5 +370,5 @@
   else setTimeout(boot, 200);
   setTimeout(boot, 800);
   setTimeout(boot, 2000);
-  setTimeout(function () { injectYtuberMenu(); injectHostedFamily(); patchBrokenModels(); }, 4000);
+  setTimeout(function () { injectYtuberMenu(); injectHostedFamily(); patchBrokenModels(); decorateModelSelects(); }, 4000);
 })();
