@@ -2,18 +2,20 @@
   "version": 2,
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/api/manus", "destination": "/api/manus" },
-    { "source": "/api/venice", "destination": "/api/venice" },
-    { "source": "/api/spotify-refresh", "destination": "/api/spotify-refresh" },
     { "source": "/api/hosted-models", "destination": "/api/hosted-chat" },
-    { "source": "/api/yt-channel", "destination": "/api/yt-search" }
+    { "source": "/api/yt-channel", "destination": "/api/yt-search" },
+    { "source": "/api/nvidia-chat", "destination": "/api/openai-compat" },
+    { "source": "/api/spotify-login", "destination": "/api/spotify?action=login" },
+    { "source": "/api/spotify-callback", "destination": "/api/spotify?action=callback" },
+    { "source": "/api/spotify-refresh", "destination": "/api/spotify?action=refresh" },
+    { "source": "/api/spotify-search", "destination": "/api/spotify?action=search" }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-RD-Build", "value": "v56-fn12-fix" }
+        { "key": "X-RD-Build", "value": "v66-fn9" }
       ]
     }
   ]
