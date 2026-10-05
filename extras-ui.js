@@ -1,6 +1,7 @@
-/* RolxDesk extras-ui v5.6 — free models Oct2026, logo SVG, sidebar YTuber */
+/* RolxDesk extras-ui v5.7 — cam in hamburger only, no floating orbs */
 (function () {
-  if (window.__RD_EXTRAS_UI56__) return;
+  if (window.__RD_EXTRAS_UI57__) return;
+  window.__RD_EXTRAS_UI57__ = true;
   window.__RD_EXTRAS_UI56__ = true;
   window.__RD_EXTRAS_UI55B__ = true;
   window.__RD_EXTRAS_UI55__ = true;
@@ -21,11 +22,11 @@
   }
 
   function injectCSS() {
-    if ($("#rd-ui56-css")) return;
+    if ($("#rd-ui57-css")) return;
     var s = document.createElement("style");
-    s.id = "rd-ui56-css";
+    s.id = "rd-ui57-css";
     s.textContent = [
-      "#rd-cam-btn{position:fixed;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:10040;width:46px;height:46px;border-radius:50%;border:1px solid #5a5a68;background:rgba(20,20,28,.98);color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.55);display:flex!important;align-items:center;justify-content:center}",
+      "#rd-cam-btn{display:none!important}",
       "#rd-cam-panel{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}",
       "#rd-cam-panel.show{display:flex}",
       "#rd-cam-panel video{max-width:min(96vw,480px);max-height:60vh;border-radius:12px;background:#000}",
@@ -46,7 +47,7 @@
       "#rd-ytuber-panel .rd-yp-item .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
       "#rd-ytuber-panel .rd-yp-item .meta span{font-size:12px;color:#999}",
       "#rd-ytuber-panel .rd-yp-item .del{background:transparent;border:0;color:#f66;font-size:18px}",
-      "#rd-ytuber-fab{position:fixed;top:max(12px,env(safe-area-inset-top));right:max(64px,env(safe-area-inset-right)+52px);z-index:10040;width:46px;height:46px;border-radius:50%;border:1px solid #5a5a68;background:rgba(20,20,28,.98);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.55)}",
+      "#rd-ytuber-fab{display:none!important}",
       ".rd-prov{display:inline-flex;align-items:center;margin-right:6px;vertical-align:middle}",
       ".rd-prov svg{width:18px;height:18px;display:block}"
     ].join("");
@@ -61,9 +62,6 @@
   }
   function ensureCamUI() {
     var old = $("#rd-cam-btn"); if (old) old.remove();
-    var btn = el("button", { id: "rd-cam-btn", type: "button", title: "Kamera" }, "\ud83d\udcf7");
-    btn.onclick = openCam;
-    document.body.appendChild(btn);
     if (!$("#rd-cam-panel")) {
       var panel = el("div", { id: "rd-cam-panel" });
       panel.innerHTML = '<video id="rd-cam-video" autoplay playsinline muted></video><div class="rd-cam-actions"><button type="button" id="rd-cam-flip">Ganti</button><button type="button" class="primary" id="rd-cam-shot">Ambil foto</button><button type="button" id="rd-cam-close">Tutup</button></div>';
@@ -218,25 +216,30 @@
     $("#rd-ytuber-panel").classList.add("show");
   }
 
-  function injectYtuberMenu() {
+  function injectSidebarTools() {
     var nav = document.querySelector("#sidebar .sidebar-nav") || document.querySelector("aside.sidebar .sidebar-nav") || document.querySelector(".sidebar-nav");
-    if (nav && !document.getElementById("rd-ytuber-nav")) {
+    if (!nav) return;
+    function addNav(id, label, panel, onClick) {
+      if (document.getElementById(id)) return;
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "nav-item";
-      btn.id = "rd-ytuber-nav";
-      btn.setAttribute("data-panel", "youtuber");
-      btn.textContent = "YouTuber Upload";
-      btn.onclick = function (e) { e.preventDefault(); e.stopPropagation(); openYtuberPanel(); };
+      btn.id = id;
+      btn.setAttribute("data-panel", panel);
+      btn.textContent = label;
+      btn.onclick = function (e) { e.preventDefault(); e.stopPropagation(); onClick(); };
       var conn = nav.querySelector('[data-panel="connectors"]');
-      if (conn && conn.parentNode) conn.parentNode.insertBefore(btn, conn.nextSibling);
+      var after = document.getElementById("rd-ytuber-nav") || conn;
+      if (after && after.parentNode) after.parentNode.insertBefore(btn, after.nextSibling);
       else nav.appendChild(btn);
     }
-    if (!document.getElementById("rd-ytuber-fab")) {
-      var fab = el("button", { id: "rd-ytuber-fab", type: "button", title: "YouTuber Upload" }, "\ud83d\udce1");
-      fab.onclick = openYtuberPanel;
-      document.body.appendChild(fab);
-    }
+    addNav("rd-ytuber-nav", "YouTuber Upload", "youtuber", openYtuberPanel);
+    addNav("rd-cam-nav", "Kamera (voice vision)", "camera", function () {
+      ensureCamUI();
+      openCam();
+    });
+    var fab = document.getElementById("rd-ytuber-fab"); if (fab) fab.remove();
+    var cam = document.getElementById("rd-cam-btn"); if (cam) cam.remove();
   }
 
   var FREE_POOL = [
@@ -260,7 +263,6 @@
         "deepseek/deepseek-r1:free": { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "Reasoning \u00b7 Nemotron Super" },
         "deepseek/deepseek-chat:free": { id: "qwen/qwen3.8-27b:free", name: "Chat \u00b7 Qwen3.8" },
         "meta-llama/llama-3.3-70b-instruct:free": { id: "qwen/qwen3.8-27b:free", name: "Llama-like \u00b7 Qwen3.8" },
-        "meta-llama/llama-3.1-70b-instruct:free": { id: "qwen/qwen3.8-27b:free", name: "Llama-like \u00b7 Qwen3.8" },
         "qwen/qwen-2.5-72b-instruct:free": { id: "qwen/qwen3.8-27b:free", name: "Qwen3.8 27B" },
         "google/gemma-3-27b-it:free": { id: "google/gemma-4-31b-it:free", name: "Gemma 4 31B" },
         "mistralai/mistral-small-3.1-24b-instruct:free": { id: "cohere/north-mini-code:free", name: "North Mini Code" }
@@ -316,23 +318,17 @@
     if (/grok|xai|inkling/.test(k))
       return '<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 3.2c-3.8 0-6.8 2.6-6.8 6.2 0 2.4 1.3 4.5 3.4 5.5L6.2 20h2.6l2.2-4.2c.3.05.7.08 1 .08 3.8 0 6.8-2.6 6.8-6.2S15.8 3.2 12 3.2zm0 2.2c2.5 0 4.4 1.6 4.4 4s-1.9 4-4.4 4-4.4-1.6-4.4-4 1.9-4 4.4-4z"/><path stroke="#fff" stroke-width="1.6" stroke-linecap="round" d="M5 19.5L19 4.5"/></svg>';
     if (/claude|anthropic/.test(k))
-      return '<svg viewBox="0 0 24 24"><g fill="#D97757"><path d="M12 2l1.1 5.2L16 3.5l-1.2 4.2 4.5-2.2-3.2 3.5 5 .2-4.5 2.2 4.2 2.8-5-.5 2.8 4.2-4.2-2.8.2 5-3.5-3.2-2.2 4.5.2-5-2.8 4.2-2.2-4.5-3.5 3.2.2-5L3.5 16l2.8-4.2-5-.2 4.2-2.8L1 8.5l5-.2L2.8 4.8l4.5 2.2L6 3.5l2.9 3.7z"/></g></svg>';
+      return '<svg viewBox="0 0 24 24"><g fill="#D97757"><circle cx="12" cy="12" r="9"/></g></svg>';
     if (/qwen/.test(k))
-      return '<svg viewBox="0 0 24 24"><path fill="#5B5BD6" d="M12 2.5L18.5 6v5.5L12 15.5 5.5 11.5V6L12 2.5z"/><path fill="#7B7BF0" d="M12 8.5l4 2.3v4.5l-4 2.3-4-2.3v-4.5L12 8.5z"/><path fill="#fff" opacity=".9" d="M12 9.8l2.8 1.6v3.2L12 16.2l-2.8-1.6v-3.2L12 9.8z"/></svg>';
+      return '<svg viewBox="0 0 24 24"><path fill="#5B5BD6" d="M12 2.5L18.5 6v5.5L12 15.5 5.5 11.5V6L12 2.5z"/></svg>';
     if (/nvidia|nemotron/.test(k))
-      return '<svg viewBox="0 0 24 24"><path fill="#76B900" d="M2 12c3.5-5.5 8-7.5 10-7.5S18.5 6.5 22 12c-3.5 5.5-8 7.5-10 7.5S5.5 17.5 2 12z"/><ellipse cx="12" cy="12" rx="3.2" ry="3.5" fill="#111"/><circle cx="12.5" cy="11.5" r="1.1" fill="#76B900"/></svg>';
+      return '<svg viewBox="0 0 24 24"><path fill="#76B900" d="M2 12c3.5-5.5 8-7.5 10-7.5S18.5 6.5 22 12c-3.5 5.5-8 7.5-10 7.5S5.5 17.5 2 12z"/><ellipse cx="12" cy="12" rx="3.2" ry="3.5" fill="#111"/></svg>';
     if (/kimi|moonshot/.test(k))
       return '<svg viewBox="0 0 24 24"><path fill="#2B7FFF" d="M16.5 4.5c2.5 0 4.5 1.8 4.5 4.1 0 2.2-1.8 4-4.2 4.1l-.8.05-1.5 2.2 0-2.1c-2.3-.2-4-1.9-4-4.15 0-2.3 2-4.2 5.5-4.2z"/></svg>';
     if (/cohere|north/.test(k))
       return '<svg viewBox="0 0 24 24"><ellipse cx="13" cy="8" rx="7" ry="5.5" fill="#2d4a3e"/><circle cx="7" cy="16.5" r="3.2" fill="#f0745a"/><ellipse cx="16.5" cy="16" rx="5" ry="4" fill="#c9a0e8"/></svg>';
     if (/openrouter|hosted|rd free|free auto/.test(k))
-      return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#f59e0b" stroke-width="1.8"/><path d="M8 12h8M12 8v8" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"/></svg>';
-    if (/venice/.test(k))
-      return '<svg viewBox="0 0 24 24"><path d="M4 16c4-8 12-8 16 0" fill="none" stroke="#a78bfa" stroke-width="1.8"/><circle cx="12" cy="9" r="3" fill="#a78bfa"/></svg>';
-    if (/manus/.test(k))
-      return '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="#5eead4" stroke-width="1.6"/></svg>';
-    if (/custom|9router|router/.test(k))
-      return '<svg viewBox="0 0 24 24"><path d="M5 12h14M9 8l-4 4 4 4M15 8l4 4-4 4" fill="none" stroke="#34d399" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#f59e0b" stroke-width="1.8"/></svg>';
     return '<svg viewBox="0 0 24 24"><text x="4" y="16" font-size="10" font-weight="700" fill="#a89cff">RD</text></svg>';
   }
 
@@ -357,7 +353,7 @@
   function boot() {
     injectCSS();
     ensureCamUI();
-    injectYtuberMenu();
+    injectSidebarTools();
     patchBrokenModels();
     injectHostedFamily();
     decorateModelSelects();
@@ -370,5 +366,5 @@
   else setTimeout(boot, 200);
   setTimeout(boot, 800);
   setTimeout(boot, 2000);
-  setTimeout(function () { injectYtuberMenu(); injectHostedFamily(); patchBrokenModels(); decorateModelSelects(); }, 4000);
+  setTimeout(function () { injectSidebarTools(); injectHostedFamily(); patchBrokenModels(); decorateModelSelects(); }, 4000);
 })();
