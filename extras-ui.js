@@ -1,6 +1,7 @@
-/* RolxDesk extras-ui v5.9 — NVIDIA Settings key, YouTuber, camera sidebar */
+/* RolxDesk extras-ui v6.0 — real Kimi/GLM/Qwen via NVIDIA key, family inject, soft skills */
 (function () {
-  if (window.__RD_EXTRAS_UI59__) return;
+  if (window.__RD_EXTRAS_UI60__) return;
+  window.__RD_EXTRAS_UI60__ = true;
   window.__RD_EXTRAS_UI59__ = true;
   window.__RD_EXTRAS_UI58__ = true;
   window.__RD_EXTRAS_UI57__ = true;
@@ -19,9 +20,9 @@
   }
 
   function injectCSS() {
-    if ($("#rd-ui59-css")) return;
+    if ($("#rd-ui60-css")) return;
     var s = document.createElement("style");
-    s.id = "rd-ui59-css";
+    s.id = "rd-ui60-css";
     s.textContent = [
       "#rd-cam-btn,#rd-ytuber-fab{display:none!important}",
       "#rd-cam-panel{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}",
@@ -239,18 +240,82 @@
     var cam = document.getElementById("rd-cam-btn"); if (cam) cam.remove();
   }
 
+  var NV_NVIDIA = [
+    { id: "nvidia/nemotron-3-super-120b-a12b", name: "Nemotron 3 Super" },
+    { id: "nvidia/nemotron-3-ultra-550b-a55b", name: "Nemotron 3 Ultra" },
+    { id: "nvidia/nemotron-3.5-lightning", name: "Nemotron 3.5 Lightning" },
+    { id: "meta/llama-3.3-70b-instruct", name: "Llama 3.3 70B" },
+    { id: "meta/llama-3.1-8b-instruct", name: "Llama 3.1 8B (cepat)" },
+    { id: "deepseek-ai/deepseek-v4-pro-0813", name: "DeepSeek V4 Pro" },
+    { id: "deepseek-ai/deepseek-v3.2", name: "DeepSeek V3.2" }
+  ];
+  var NV_KIMI = [
+    { id: "moonshotai/kimi-k3", name: "Kimi K3 (NVIDIA)" },
+    { id: "moonshotai/kimi-k2.6", name: "Kimi K2.6 (NVIDIA)" }
+  ];
+  var NV_GLM = [
+    { id: "z-ai/glm-5.2", name: "GLM 5.2" },
+    { id: "z-ai/glm-4.7", name: "GLM 4.7" }
+  ];
+  var NV_QWEN = [
+    { id: "qwen/qwen2.5-7b-instruct", name: "Qwen2.5 7B (NVIDIA)" },
+    { id: "qwen/qwen3-next-80b-a3b-thinking", name: "Qwen3-Next 80B Thinking" },
+    { id: "qwen/qwen3.5-122b-a10b", name: "Qwen3.5 122B A10B" },
+    { id: "qwen/qwen3-coder-480b-a35b-instruct", name: "Qwen3 Coder 480B" }
+  ];
+
   var FREE_POOL = [
     { id: "qwen/qwen3.8-27b:free", name: "RD Qwen3.8 27B" },
     { id: "google/gemma-4-31b-it:free", name: "RD Gemma 4 31B" },
-    { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "RD Nemotron Super" },
+    { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "RD Nemotron Super (OR)" },
     { id: "cohere/north-mini-code:free", name: "RD North Mini Code" },
     { id: "thinkingmachines/inkling:free", name: "RD Inkling" },
     { id: "openrouter/free", name: "RD Free Auto" }
   ];
 
-  function injectHostedFamily() {
+  function patchModelsCatalog() {
+    try {
+      if (typeof MODELS === "undefined") return;
+      MODELS.nvidia = NV_NVIDIA.slice();
+      MODELS.kimi = NV_KIMI.slice();
+      MODELS.glm = NV_GLM.slice();
+      MODELS.qwen_nv = NV_QWEN.slice();
+      if (!MODELS.qwen) MODELS.qwen = [];
+      var keep = MODELS.qwen.filter(function (m) {
+        return /qwen3\.8-27b:free/i.test(m.id);
+      });
+      if (!keep.length) keep = [{ id: "qwen/qwen3.8-27b:free", name: "Qwen3.8 27B (OpenRouter)" }];
+      MODELS.qwen = keep;
+      if (Array.isArray(MODELS.persona)) {
+        MODELS.persona = MODELS.persona.map(function (m) {
+          if (m.persona === "kimi-k3" || /kimi/i.test(m.name || "")) {
+            return { id: "moonshotai/kimi-k3", name: "Kimi K3", persona: "kimi-k3" };
+          }
+          return m;
+        });
+      }
+      MODELS.deepseek = [
+        { id: "deepseek-ai/deepseek-v4-pro-0813", name: "DeepSeek V4 Pro (NVIDIA)" },
+        { id: "deepseek-ai/deepseek-v3.2", name: "DeepSeek V3.2 (NVIDIA)" }
+      ];
+    } catch (e) {}
+  }
+
+  function injectFamilyOptions() {
     var fam = $("#familySelect");
     if (!fam) return;
+    function addOpt(val, label, beforeVal) {
+      if (fam.querySelector('option[value="' + val + '"]')) return;
+      var opt = document.createElement("option");
+      opt.value = val;
+      opt.textContent = label;
+      var before = beforeVal ? fam.querySelector('option[value="' + beforeVal + '"]') : null;
+      if (before) fam.insertBefore(opt, before);
+      else fam.appendChild(opt);
+    }
+    addOpt("kimi", "Kimi (NVIDIA key)", "custom");
+    addOpt("glm", "GLM (NVIDIA key)", "custom");
+    addOpt("qwen_nv", "Qwen NVIDIA", "custom");
     if (!fam.querySelector('option[value="hosted"]')) {
       var opt = document.createElement("option");
       opt.value = "hosted";
@@ -260,21 +325,59 @@
       else fam.appendChild(opt);
     }
     try { if (typeof MODELS !== "undefined") MODELS.hosted = FREE_POOL.slice(); } catch (e) {}
-    if (!fam.__rdHosted59) {
-      fam.__rdHosted59 = true;
-      fam.addEventListener("change", function () {
-        if (fam.value === "hosted") {
-          var ms = $("#modelSelect");
-          if (!ms) return;
-          fetch("/api/hosted-models").then(function (r) { return r.json(); }).then(function (j) {
-            var list = (j.models && j.models.length) ? j.models : FREE_POOL;
-            ms.innerHTML = list.map(function (m) { return '<option value="' + m.id + '">' + m.name + "</option>"; }).join("");
-          }).catch(function () {
-            ms.innerHTML = FREE_POOL.map(function (m) { return '<option value="' + m.id + '">' + m.name + "</option>"; }).join("");
-          });
-        }
-      });
+  }
+
+  function injectHostedFamily() {
+    injectFamilyOptions();
+    patchModelsCatalog();
+    var fam = $("#familySelect");
+    if (!fam || fam.__rdHosted60) return;
+    fam.__rdHosted60 = true;
+    fam.addEventListener("change", function () {
+      var v = fam.value;
+      var ms = $("#modelSelect");
+      if (!ms) return;
+      if (v === "hosted") {
+        fetch("/api/hosted-models").then(function (r) { return r.json(); }).then(function (j) {
+          var list = (j.models && j.models.length) ? j.models : FREE_POOL;
+          ms.innerHTML = list.map(function (m) { return '<option value="' + m.id + '">' + m.name + "</option>"; }).join("");
+        }).catch(function () {
+          ms.innerHTML = FREE_POOL.map(function (m) { return '<option value="' + m.id + '">' + m.name + "</option>"; }).join("");
+        });
+        return;
+      }
+      if (v === "nvidia" || v === "kimi" || v === "glm" || v === "qwen_nv" || v === "deepseek") {
+        patchModelsCatalog();
+        var list = (MODELS && MODELS[v]) || [];
+        ms.innerHTML = list.map(function (m) { return '<option value="' + m.id + '">' + m.name + "</option>"; }).join("");
+      }
+    });
+  }
+
+  var NV_SKILL_HINT =
+    "\n[RolxDesk skills aktif]\n" +
+    "- Research/browse: [[BROWSE:url]] atau [[SEARCH:query]]\n" +
+    "- YouTube play: [[YOUTUBE:query atau url]]\n" +
+    "- Image: [[IMG:deskripsi]]\n" +
+    "- Code sandbox: tulis blok python/js; sistem eksekusi\n" +
+    "Jangan bilang tidak bisa — pakai tag tools di atas. Langsung aksi.\n";
+
+  function injectNvidiaSkillHint(messages) {
+    if (!Array.isArray(messages) || !messages.length) return messages;
+    var out = messages.slice();
+    var sysIdx = -1;
+    for (var i = 0; i < out.length; i++) {
+      if (out[i] && out[i].role === "system") { sysIdx = i; break; }
     }
+    if (sysIdx >= 0) {
+      var c = out[sysIdx].content;
+      if (typeof c === "string" && c.indexOf("[RolxDesk skills aktif]") < 0) {
+        out[sysIdx] = { role: "system", content: c + NV_SKILL_HINT };
+      }
+    } else {
+      out.unshift({ role: "system", content: NV_SKILL_HINT.trim() });
+    }
+    return out;
   }
 
   function injectNvidiaSettings() {
@@ -287,7 +390,7 @@
     group.innerHTML =
       '<label>NVIDIA API Key <span>(build.nvidia.com)</span></label>' +
       '<input type="password" id="keyNvidia" placeholder="nvapi-... / NVIDIA key" autocomplete="off" />' +
-      '<p style="font-size:0.68rem;color:var(--text-muted);margin:6px 0 0">Family <b>Nvidia</b> pakai key ini (disimpan di browser). Hosted env terpisah.</p>';
+      '<p style="font-size:0.68rem;color:var(--text-muted);margin:6px 0 0">Family <b>Nvidia / Kimi / GLM / Qwen NVIDIA / DeepSeek</b> pakai key ini. Skills RD (browse, YT, code) aktif otomatis.</p>';
     if (google && google.closest(".form-group")) google.closest(".form-group").after(group);
     else body.insertBefore(group, body.firstChild);
   }
@@ -343,15 +446,26 @@
     }
   }
 
-  async function callNvidiaDirect(messages, modelId, apiKey, temp, maxTok) {
+  function resolveNvidiaModelId(modelId) {
     var mid = String(modelId || "").replace(/^nv:/, "");
     var map = {
-      "nvidia/nemotron-3-super-120b-a12b:free": "nvidia/llama-3.3-nemotron-super-49b-v1",
-      "nvidia/nemotron-3-super-120b-a12b": "nvidia/llama-3.3-nemotron-super-49b-v1",
-      "nvidia/nemotron-3.5-lightning:free": "nvidia/llama-3.3-nemotron-super-49b-v1"
+      "nvidia/nemotron-3-super-120b-a12b:free": "nvidia/nemotron-3-super-120b-a12b",
+      "nvidia/nemotron-3.5-lightning:free": "nvidia/nemotron-3.5-lightning",
+      "nvidia/nemotron-3-ultra-550b-a55b:free": "nvidia/nemotron-3-ultra-550b-a55b",
+      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": "nvidia/nemotron-3-nano-omni-30b-a3b",
+      "nvidia/llama-3.3-nemotron-super-49b-v1:free": "nvidia/llama-3.3-nemotron-super-49b-v1",
+      "inclusionai/ling-3.0-flash-fin:free": "moonshotai/kimi-k3",
+      "deepseek/deepseek-chat:free": "deepseek-ai/deepseek-v3.2",
+      "deepseek/deepseek-r1:free": "deepseek-ai/deepseek-v4-pro-0813"
     };
     if (map[mid]) mid = map[mid];
     if (!mid || mid === "custom") mid = "meta/llama-3.1-8b-instruct";
+    return mid;
+  }
+
+  async function callNvidiaDirect(messages, modelId, apiKey, temp, maxTok) {
+    var mid = resolveNvidiaModelId(modelId);
+    messages = injectNvidiaSkillHint(messages);
     var r = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json", Accept: "application/json" },
@@ -361,7 +475,7 @@
           return { role: m.role, content: typeof m.content === "string" ? m.content : JSON.stringify(m.content) };
         }),
         temperature: temp ?? 0.7,
-        max_tokens: Math.min(maxTok || 2048, 4096),
+        max_tokens: Math.min(maxTok || 4096, 8192),
         stream: false
       })
     });
@@ -373,8 +487,20 @@
     return data;
   }
 
+  function isNvidiaRoutedFamily(fam, model) {
+    var f = String(fam || "");
+    var m = String(model || "");
+    if (f === "nvidia" || f === "kimi" || f === "glm" || f === "qwen_nv" || f === "deepseek") return true;
+    if (m.indexOf("nv:") === 0) return true;
+    if (/^moonshotai\//i.test(m) || /^z-ai\//i.test(m) || /^deepseek-ai\//i.test(m)) return true;
+    if (/^qwen\/qwen(2\.5|3)/i.test(m) && m.indexOf(":free") < 0) return true;
+    if (/^nvidia\//i.test(m) && m.indexOf(":free") < 0) return true;
+    if (f === "persona" && /moonshotai\/kimi/i.test(m)) return true;
+    return false;
+  }
+
   function patchCallModelNvidia() {
-    if (typeof window.callModel !== "function" || window.callModel.__rdNv) return;
+    if (typeof window.callModel !== "function" || window.callModel.__rdNv60) return;
     var prev = window.callModel;
     window.callModel = async function (messages) {
       try {
@@ -389,20 +515,21 @@
             if (nvKey && window.state) { state.keys = state.keys || {}; state.keys.nvidia = nvKey; }
           } catch (e0) {}
         }
-        var wantNv = fam === "nvidia" || String(model).indexOf("nv:") === 0;
-        if (wantNv && nvKey) {
+        if (isNvidiaRoutedFamily(fam, model) && nvKey) {
           var temp = parseFloat((window.state && state.settings && state.settings.temperature) || 0.7);
-          var maxTok = parseInt((window.state && state.settings && state.settings.maxTokens) || 2048, 10);
+          var maxTok = parseInt((window.state && state.settings && state.settings.maxTokens) || 4096, 10);
           if (typeof injectPersona === "function") {
             try { messages = injectPersona(typeof normalizeMessages === "function" ? normalizeMessages(messages) : messages); } catch (e1) {}
           }
           return await callNvidiaDirect(messages, model, nvKey, temp, maxTok);
         }
       } catch (e) {
-        if (String(e.message || "").indexOf("NVIDIA") >= 0) throw e;
+        if (String(e.message || "").indexOf("NVIDIA") >= 0 || String(e.message || "").indexOf("nvapi") >= 0) throw e;
+        if (String(e.message || e).indexOf("HTTP") >= 0) throw e;
       }
       return prev.apply(this, arguments);
     };
+    window.callModel.__rdNv60 = true;
     window.callModel.__rdNv = true;
   }
 
@@ -410,6 +537,7 @@
     injectCSS();
     ensureCamUI();
     injectSidebarTools();
+    patchModelsCatalog();
     injectHostedFamily();
     wireNvidiaSettings();
     patchCallModelNvidia();
@@ -424,6 +552,7 @@
   setTimeout(boot, 2000);
   setTimeout(function () {
     injectSidebarTools();
+    patchModelsCatalog();
     injectHostedFamily();
     wireNvidiaSettings();
     patchCallModelNvidia();
