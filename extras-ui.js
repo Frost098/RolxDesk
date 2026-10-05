@@ -1,6 +1,7 @@
-/* RolxDesk extras-ui v5.7 — cam in hamburger only, no floating orbs */
+/* RolxDesk extras-ui v5.8 — youtuber channel:true */
 (function () {
-  if (window.__RD_EXTRAS_UI57__) return;
+  if (window.__RD_EXTRAS_UI58__) return;
+  window.__RD_EXTRAS_UI58__ = true;
   window.__RD_EXTRAS_UI57__ = true;
   window.__RD_EXTRAS_UI56__ = true;
   window.__RD_EXTRAS_UI55B__ = true;
@@ -22,9 +23,9 @@
   }
 
   function injectCSS() {
-    if ($("#rd-ui57-css")) return;
+    if ($("#rd-ui58-css")) return;
     var s = document.createElement("style");
-    s.id = "rd-ui57-css";
+    s.id = "rd-ui58-css";
     s.textContent = [
       "#rd-cam-btn{display:none!important}",
       "#rd-cam-panel{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}",
@@ -149,9 +150,14 @@
     if (!q) return;
     if (typeof showToast === "function") showToast("Mencari channel\u2026", "info");
     try {
-      var r = await fetch("/api/yt-channel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q: q }) });
-      var j = await r.json();
-      if (!r.ok || !j.channel) throw new Error(j.error || "Gagal");
+      var payload = JSON.stringify({ q: q, channel: true, action: "channel" });
+      var r = await fetch("/api/yt-channel", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload });
+      var j = await r.json().catch(function () { return {}; });
+      if (!r.ok || !j.channel) {
+        r = await fetch("/api/yt-search", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload });
+        j = await r.json().catch(function () { return {}; });
+      }
+      if (!r.ok || !j.channel) throw new Error(j.error || "Channel tidak ketemu");
       var list = loadYtubers();
       if (list.some(function (c) { return c.id === j.channel.id; })) {
         if (typeof showToast === "function") showToast("Sudah ada", "error");
@@ -191,7 +197,7 @@
     for (var i = 0; i < list.length; i++) {
       var c = list[i];
       try {
-        var r = await fetch("/api/yt-channel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelId: c.id, q: c.name }) });
+        var r = await fetch("/api/yt-channel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelId: c.id, q: c.name, channel: true }) });
         var j = await r.json();
         if (!r.ok || !j.latest || !j.latest.id) continue;
         if (c.lastVideoId && c.lastVideoId !== j.latest.id) {
@@ -274,14 +280,6 @@
         });
       });
       MODELS.hosted = FREE_POOL.slice();
-      var ms = $("#modelSelect");
-      if (ms) {
-        var v = ms.value || "";
-        if (REPL[v]) {
-          ms.value = REPL[v].id;
-          if (window.state) state.selectedModel = REPL[v].id;
-        }
-      }
     } catch (e) {}
   }
 
@@ -303,9 +301,17 @@
         if (fam.value === "hosted") {
           var ms = $("#modelSelect");
           if (!ms) return;
-          ms.innerHTML = FREE_POOL.map(function (m) {
-            return '<option value="' + m.id + '">' + m.name + "</option>";
-          }).join("");
+          // Prefer live list from /api/hosted-models (includes NVIDIA if key set)
+          fetch("/api/hosted-models").then(function (r) { return r.json(); }).then(function (j) {
+            var list = (j.models && j.models.length) ? j.models : FREE_POOL;
+            ms.innerHTML = list.map(function (m) {
+              return '<option value="' + m.id + '">' + m.name + "</option>";
+            }).join("");
+          }).catch(function () {
+            ms.innerHTML = FREE_POOL.map(function (m) {
+              return '<option value="' + m.id + '">' + m.name + "</option>";
+            }).join("");
+          });
         }
       });
     }
@@ -316,17 +322,17 @@
     if (/gemini|google|gemma/.test(k))
       return '<svg viewBox="0 0 24 24"><defs><linearGradient id="gm56" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#1a73e8"/><stop offset="1" stop-color="#c58bff"/></linearGradient></defs><path fill="url(#gm56)" d="M12 1.5L14.2 9.5 22 12 14.2 14.5 12 22.5 9.8 14.5 2 12 9.8 9.5z"/></svg>';
     if (/grok|xai|inkling/.test(k))
-      return '<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 3.2c-3.8 0-6.8 2.6-6.8 6.2 0 2.4 1.3 4.5 3.4 5.5L6.2 20h2.6l2.2-4.2c.3.05.7.08 1 .08 3.8 0 6.8-2.6 6.8-6.2S15.8 3.2 12 3.2zm0 2.2c2.5 0 4.4 1.6 4.4 4s-1.9 4-4.4 4-4.4-1.6-4.4-4 1.9-4 4.4-4z"/><path stroke="#fff" stroke-width="1.6" stroke-linecap="round" d="M5 19.5L19 4.5"/></svg>';
+      return '<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 3.2c-3.8 0-6.8 2.6-6.8 6.2 0 2.4 1.3 4.5 3.4 5.5L6.2 20h2.6l2.2-4.2c.3.05.7.08 1 .08 3.8 0 6.8-2.6 6.8-6.2S15.8 3.2 12 3.2zm0 2.2c2.5 0 4.4 1.6 4.4 4s-1.9 4-4.4 4-4.4-1.6-4.4-4 1.9-4 4.4-4z"/></svg>';
     if (/claude|anthropic/.test(k))
       return '<svg viewBox="0 0 24 24"><g fill="#D97757"><circle cx="12" cy="12" r="9"/></g></svg>';
     if (/qwen/.test(k))
       return '<svg viewBox="0 0 24 24"><path fill="#5B5BD6" d="M12 2.5L18.5 6v5.5L12 15.5 5.5 11.5V6L12 2.5z"/></svg>';
-    if (/nvidia|nemotron/.test(k))
+    if (/nvidia|nemotron|^nv:/.test(k))
       return '<svg viewBox="0 0 24 24"><path fill="#76B900" d="M2 12c3.5-5.5 8-7.5 10-7.5S18.5 6.5 22 12c-3.5 5.5-8 7.5-10 7.5S5.5 17.5 2 12z"/><ellipse cx="12" cy="12" rx="3.2" ry="3.5" fill="#111"/></svg>';
     if (/kimi|moonshot/.test(k))
       return '<svg viewBox="0 0 24 24"><path fill="#2B7FFF" d="M16.5 4.5c2.5 0 4.5 1.8 4.5 4.1 0 2.2-1.8 4-4.2 4.1l-.8.05-1.5 2.2 0-2.1c-2.3-.2-4-1.9-4-4.15 0-2.3 2-4.2 5.5-4.2z"/></svg>';
     if (/cohere|north/.test(k))
-      return '<svg viewBox="0 0 24 24"><ellipse cx="13" cy="8" rx="7" ry="5.5" fill="#2d4a3e"/><circle cx="7" cy="16.5" r="3.2" fill="#f0745a"/><ellipse cx="16.5" cy="16" rx="5" ry="4" fill="#c9a0e8"/></svg>';
+      return '<svg viewBox="0 0 24 24"><ellipse cx="13" cy="8" rx="7" ry="5.5" fill="#2d4a3e"/><circle cx="7" cy="16.5" r="3.2" fill="#f0745a"/></svg>';
     if (/openrouter|hosted|rd free|free auto/.test(k))
       return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#f59e0b" stroke-width="1.8"/></svg>';
     return '<svg viewBox="0 0 24 24"><text x="4" y="16" font-size="10" font-weight="700" fill="#a89cff">RD</text></svg>';
