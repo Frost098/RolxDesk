@@ -1,12 +1,132 @@
-/* RolxDesk extras-fix v6.4.1 — NVIDIA via /api/openai-compat + brand SVG */
+/* RolxDesk extras-fix v6.4.2 — NVIDIA key persist + openai-compat proxy + SVG */
 (function(){
-  if(window.__RD_EXTRAS_FIX641__)return;
-  window.__RD_EXTRAS_FIX641__=true;
-  var RD_VERSION="6.4.1";
+  if(window.__RD_EXTRAS_FIX642__)return;
+  window.__RD_EXTRAS_FIX642__=true;
+  var RD_VERSION="6.4.2";
   var DEAD={"nex-agi/nex-n2.5-mini:free":"qwen/qwen3.8-27b:free","nex-agi/nex-n2.5-mini":"qwen/qwen3.8-27b:free","nex-agi/nex-n2.5-pro:free":"qwen/qwen3.8-27b:free","z-ai/glm-5.2":"z-ai/glm-5.3","z-ai/glm-4.7":"z-ai/glm-5.3-flash","z-ai/glm-5-3":"z-ai/glm-5.3","z-ai/glm-5-3-flash":"z-ai/glm-5.3-flash"};
   function remap(id){var s=String(id||"");if(DEAD[s])return DEAD[s];if(/nex-agi\/nex-n2/i.test(s))return"qwen/qwen3.8-27b:free";return s}
-  function nvKey(){try{var k=(window.state&&state.keys&&state.keys.nvidia)||"";if(k)return k;return(JSON.parse(localStorage.getItem("rd_keys")||"{}")).nvidia||""}catch(e){return""}}
-  function needsNv(m,f){m=String(m||"");f=String(f||"");if(f==="kimi"||f==="glm"||f==="deepseek"||f==="qwen_nv")return true;if(f==="nvidia"&&m.indexOf(":free")<0)return true;if(/^moonshotai\//i.test(m)||/^z-ai\//i.test(m)||/^deepseek-ai\//i.test(m))return true;if(/^nvidia\//i.test(m)&&m.indexOf(":free")<0)return true;return false}
+
+  function readNvFromStorage(){
+    try{
+      var solo=localStorage.getItem("rd_nvidia_key")||"";
+      if(solo)return solo;
+      var all=JSON.parse(localStorage.getItem("rd_keys")||"{}");
+      return all.nvidia||all.NVIDIA||all.nvidiaKey||"";
+    }catch(e){return""}
+  }
+  function writeNvToStorage(v){
+    v=String(v||"").trim();
+    try{localStorage.setItem("rd_nvidia_key",v)}catch(e){}
+    try{
+      var all=JSON.parse(localStorage.getItem("rd_keys")||"{}");
+      all.nvidia=v;
+      localStorage.setItem("rd_keys",JSON.stringify(all));
+    }catch(e2){}
+    try{if(window.state){state.keys=state.keys||{};state.keys.nvidia=v}}catch(e3){}
+  }
+  function nvKey(){
+    try{var k=(window.state&&state.keys&&state.keys.nvidia)||"";if(k)return String(k).trim()}catch(e){}
+    var from=readNvFromStorage();
+    if(from&&window.state){try{state.keys=state.keys||{};state.keys.nvidia=from}catch(e2){}}
+    return from;
+  }
+  function ensureNvInState(){
+    var k=readNvFromStorage();if(!k)return;
+    try{if(window.state){state.keys=state.keys||{};if(!state.keys.nvidia)state.keys.nvidia=k}}catch(e){}
+  }
+
+  function ensureNvidiaInput(){
+    var modal=document.querySelector("#settingsModal .modal-body, #settingsModal, .settings-body");
+    if(!modal)return;
+    var existing=document.getElementById("rdNvidiaKey")||document.getElementById("keyNvidia");
+    if(existing){
+      if(!existing.value){var k=readNvFromStorage();if(k)existing.value=k}
+      return existing;
+    }
+    var group=document.getElementById("rd-nvidia-key-group");
+    if(!group){
+      group=document.createElement("div");
+      group.id="rd-nvidia-key-group";
+      group.className="form-group";
+      group.style.cssText="margin-top:10px;padding-top:10px;border-top:1px solid #2a2a34";
+      group.innerHTML='<label>NVIDIA API Key <span style="color:#76B900;font-size:11px">(build.nvidia.com — disimpan terpisah)</span></label><input type="password" id="rdNvidiaKey" placeholder="nvapi-..." autocomplete="off" style="width:100%;margin-top:4px" />';
+      modal.appendChild(group);
+    }
+    var inp=document.getElementById("rdNvidiaKey");
+    if(inp){
+      var k2=readNvFromStorage();if(k2)inp.value=k2;
+      if(!inp.__rdNvBound){
+        inp.__rdNvBound=true;
+        var save=function(){writeNvToStorage(inp.value)};
+        inp.addEventListener("change",save);
+        inp.addEventListener("blur",save);
+        inp.addEventListener("input",function(){clearTimeout(inp.__rdNvT);inp.__rdNvT=setTimeout(save,400)});
+      }
+    }
+    return inp;
+  }
+
+  function patchSaveLoad(){
+    if(typeof window.saveSettings==="function"&&!window.saveSettings.__rdNv){
+      var prevSave=window.saveSettings;
+      window.saveSettings=function(){
+        var inp=document.getElementById("rdNvidiaKey")||document.getElementById("keyNvidia");
+        var typed=inp?String(inp.value||"").trim():"";
+        var before=typed||readNvFromStorage();
+        var r=prevSave.apply(this,arguments);
+        if(before)writeNvToStorage(before);
+        else{
+          ensureNvInState();
+          try{
+            var all=JSON.parse(localStorage.getItem("rd_keys")||"{}");
+            if(!all.nvidia){
+              var solo=localStorage.getItem("rd_nvidia_key")||"";
+              if(solo){all.nvidia=solo;localStorage.setItem("rd_keys",JSON.stringify(all))}
+            }
+          }catch(e){}
+        }
+        ensureNvidiaInput();
+        return r;
+      };
+      window.saveSettings.__rdNv=true;
+    }
+    if(typeof window.loadSettings==="function"&&!window.loadSettings.__rdNv){
+      var prevLoad=window.loadSettings;
+      window.loadSettings=function(){
+        var r=prevLoad.apply(this,arguments);
+        ensureNvInState();
+        var inp=ensureNvidiaInput();
+        var k=readNvFromStorage();
+        if(inp&&k)inp.value=k;
+        return r;
+      };
+      window.loadSettings.__rdNv=true;
+    }
+    if(!window.__rdLsPatch){
+      window.__rdLsPatch=true;
+      var rawSet=localStorage.setItem.bind(localStorage);
+      localStorage.setItem=function(key,val){
+        if(key==="rd_keys"){
+          try{
+            var obj=JSON.parse(val||"{}");
+            var keep=obj.nvidia||localStorage.getItem("rd_nvidia_key")||"";
+            if(keep&&!obj.nvidia){obj.nvidia=keep;val=JSON.stringify(obj)}
+            if(obj.nvidia){try{rawSet("rd_nvidia_key",obj.nvidia)}catch(e0){}}
+          }catch(e){}
+        }
+        return rawSet(key,val);
+      };
+    }
+  }
+
+  function needsNv(m,f){
+    m=String(m||"");f=String(f||"");
+    if(f==="kimi"||f==="glm"||f==="deepseek"||f==="qwen_nv")return true;
+    if(f==="nvidia"&&m.indexOf(":free")<0)return true;
+    if(/^moonshotai\//i.test(m)||/^z-ai\//i.test(m)||/^deepseek-ai\//i.test(m))return true;
+    if(/^nvidia\//i.test(m)&&m.indexOf(":free")<0)return true;
+    return false;
+  }
 
   async function callNv(messages,modelId,key,temp,maxTok){
     var mid=remap(String(modelId||"").replace(/^nv:/,""));
@@ -47,9 +167,9 @@
   SVG.cohere=SVG.north;
 
   function injectCSS(){
-    if(document.getElementById("rd-fix641-css"))return;
-    var s=document.createElement("style");s.id="rd-fix641-css";
-    s.textContent=".msg-avatar,.chip-avatar,.model-avatar{background:transparent!important;overflow:hidden;border-radius:50%!important}.msg-avatar svg,.chip-avatar svg{display:block;width:100%;height:100%}#rd-version-badge{font-size:11px;color:#888;margin-top:8px;padding:6px 0;border-top:1px solid #2a2a34}#rd-version-badge b{color:#a89cff}";
+    if(document.getElementById("rd-fix642-css"))return;
+    var s=document.createElement("style");s.id="rd-fix642-css";
+    s.textContent=".msg-avatar,.chip-avatar,.model-avatar{background:transparent!important;overflow:hidden;border-radius:50%!important}.msg-avatar svg,.chip-avatar svg{display:block;width:100%;height:100%}#rd-version-badge{font-size:11px;color:#888;margin-top:8px;padding:6px 0;border-top:1px solid #2a2a34}#rd-version-badge b{color:#a89cff}#rd-nvidia-key-group label span{color:#76B900;font-size:11px}";
     document.head.appendChild(s);
   }
 
@@ -70,9 +190,7 @@
         else if(/gpt|openai/.test(t))svg=SVG.gpt;
         if(svg){
           var cur=el.innerHTML||"";
-          if(!el.querySelector("svg")||/#1a7f64|#22c55e|currentColor|green/i.test(cur)||cur.length<40){
-            el.innerHTML=svg;
-          }
+          if(!el.querySelector("svg")||/#1a7f64|#22c55e|currentColor|green/i.test(cur)||cur.length<40)el.innerHTML=svg;
         }
       });
     }catch(e){}
@@ -102,14 +220,13 @@
   }
 
   function patchFetch(){
-    if(window.__rdFetch641)return;window.__rdFetch641=true;
+    if(window.__rdFetch642)return;window.__rdFetch642=true;
     var orig=window.fetch;
     window.fetch=function(input,init){
       try{
         var url=typeof input==="string"?input:(input&&input.url)||"";
-        if(/integrate\.api\.nvidia\.com/i.test(url)){
-          return Promise.reject(new Error("CORS: pakai proxy /api/openai-compat. Hard refresh RD."));
-        }
+        if(/integrate\.api\.nvidia\.com/i.test(url))
+          return Promise.reject(new Error("CORS: pakai proxy. Hard refresh RD."));
         if(/openrouter\.ai/i.test(url)&&init&&init.body&&typeof init.body==="string"){
           var body=JSON.parse(init.body);
           if(body&&body.model){
@@ -125,16 +242,17 @@
   }
 
   function patchCall(){
-    if(typeof window.callModel!=="function"||window.callModel.__rdFix641)return;
+    if(typeof window.callModel!=="function"||window.callModel.__rdFix642)return;
     var prev=window.callModel;
     window.callModel=async function(messages){
+      ensureNvInState();
       var fam=(document.getElementById("familySelect")||{}).value||"";
       var model=(document.getElementById("modelSelect")||{}).value||"";
       if(window.state&&state.selectedModel)model=state.selectedModel||model;
       model=remap(model);
       var key=nvKey();
       if(needsNv(model,fam)){
-        if(!key)throw new Error("NVIDIA API Key kosong di Settings (build.nvidia.com).");
+        if(!key)throw new Error("NVIDIA API Key kosong — isi di Settings (disimpan di rd_nvidia_key).");
         var temp=0.7,maxTok=1024;
         try{temp=parseFloat((state.settings&&state.settings.temperature)||0.7);maxTok=parseInt((state.settings&&state.settings.maxTokens)||1024,10)}catch(e0){}
         if(typeof injectPersona==="function"){try{messages=injectPersona(typeof normalizeMessages==="function"?normalizeMessages(messages):messages)}catch(e1){}}
@@ -143,22 +261,36 @@
       try{var ms=document.getElementById("modelSelect");if(ms&&ms.value){var fx=remap(ms.value);if(fx!==ms.value){ms.value=fx;if(window.state)state.selectedModel=fx}}}catch(e2){}
       return prev.apply(this,arguments);
     };
-    window.callModel.__rdFix641=true;
+    window.callModel.__rdFix642=true;
   }
 
   function injectVer(){
     var body=document.querySelector("#settingsModal .modal-body");if(!body)return;
     var el=document.getElementById("rd-version-badge");
     if(!el){el=document.createElement("div");el.id="rd-version-badge";body.appendChild(el)}
-    el.innerHTML="RolxDesk <b>v"+RD_VERSION+"</b> · NVIDIA via openai-compat proxy · brand SVG";
+    el.innerHTML="RolxDesk <b>v"+RD_VERSION+"</b> · NVIDIA key persistent · proxy openai-compat";
   }
 
   function boot(){
-    injectCSS();patchCatalog();injectFam();patchFetch();patchCall();injectVer();recolorAvatars();
+    injectCSS();patchSaveLoad();ensureNvInState();ensureNvidiaInput();
+    patchCatalog();injectFam();patchFetch();patchCall();injectVer();recolorAvatars();
     try{if(typeof populateModels==="function")populateModels()}catch(e){}
   }
-  setTimeout(boot,200);setTimeout(boot,800);setTimeout(function(){boot();recolorAvatars()},2000);setTimeout(function(){boot();recolorAvatars()},4000);
-  try{var chat=document.querySelector("#chatBox,.chat-messages,#messages");if(chat)new MutationObserver(function(){recolorAvatars()}).observe(chat,{childList:true,subtree:true})}catch(e){}
+
+  setTimeout(boot,200);setTimeout(boot,800);
+  setTimeout(function(){boot();recolorAvatars()},2000);
+  setTimeout(function(){boot();recolorAvatars()},4000);
+
+  try{
+    var chat=document.querySelector("#chatBox,.chat-messages,#messages");
+    if(chat)new MutationObserver(function(){recolorAvatars()}).observe(chat,{childList:true,subtree:true});
+  }catch(e){}
+
   var modal=document.getElementById("settingsModal");
-  if(modal&&!modal.__rdVer641){modal.__rdVer641=true;new MutationObserver(function(){if(modal.classList.contains("open"))injectVer()}).observe(modal,{attributes:true,attributeFilter:["class"]})}
+  if(modal&&!modal.__rdVer642){
+    modal.__rdVer642=true;
+    new MutationObserver(function(){
+      if(modal.classList.contains("open")){injectVer();ensureNvidiaInput();ensureNvInState()}
+    }).observe(modal,{attributes:true,attributeFilter:["class"]});
+  }
 })();
