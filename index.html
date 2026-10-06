@@ -100,30 +100,27 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
       bin = new Uint8Array(raw.length);
       for (var j = 0; j < raw.length; j++) bin[j] = raw.charCodeAt(j);
     } catch (e) {
-      throw new Error("atob gagal — base64 rusak (" + b64.length + " chars). Hard refresh.");
+      throw new Error("atob gagal — base64 rusak (" + b64.length + " chars). Coba hard refresh.");
     }
-    progress(92);
-    status("Decompress…");
-    var html;
-    try {
-      var ds = new DecompressionStream("gzip");
-      var stream = new Blob([bin]).stream().pipeThrough(ds);
-      html = await new Response(stream).text();
-    } catch (e) {
-      throw new Error("gzip gagal — chunk tidak utuh. Hard refresh atau redeploy.");
-    }
+    progress(90);
+    status("Inflate…");
+    var ds = new DecompressionStream("gzip");
+    var stream = new Blob([bin]).stream().pipeThrough(ds);
+    var html = await new Response(stream).text();
+    progress(95);
+    status("Render…");
     html = html.replace(/<script[^>]*extras(?:-ui)?\.js[^>]*><\/script>/gi, "");
-    html = html.replace(/<\/body>/i, '<script src="./extras.js?v=57"><\/script><script src="./extras-ui.js?v=60"><\/script><script src="./extras-fix.js?v=65"><\/script></body>');
-    progress(100);
-    status("Siap");
+    html = html.replace(/<\/body>/i, '<script src="./extras.js?v=57"><\/script><script src="./extras-ui.js?v=66"><\/script><script src="./extras-fix.js?v=66"><\/script></body>');
     var elapsed = Date.now() - t0;
-    var wait = Math.max(0, Math.min(900, MAX_MS) - elapsed);
+    var wait = Math.max(0, Math.min(MAX_MS, 900) - elapsed);
     await new Promise(function (res) { setTimeout(res, wait); });
+    progress(100);
     document.open();
     document.write(html);
     document.close();
   } catch (err) {
-    status("Gagal: " + (err && err.message || err));
+    status("Gagal: " + (err && err.message ? err.message : err));
+    progress(100);
     console.error(err);
   }
 })();
