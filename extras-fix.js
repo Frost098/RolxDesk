@@ -1,8 +1,8 @@
-/* RolxDesk extras-fix v6.6.0 — NVIDIA via proxy (bukan OpenRouter) + single key UI + version */
+/* RolxDesk extras-fix v6.6.1 — live NVIDIA model IDs + proxy (bukan OpenRouter) */
 (function () {
-  if (window.__RD_EXTRAS_FIX660__) return;
-  window.__RD_EXTRAS_FIX660__ = true;
-  window.__RD_PATCH_VERSION__ = "6.6.0";
+  if (window.__RD_EXTRAS_FIX661__) return;
+  window.__RD_EXTRAS_FIX661__ = true;
+  window.__RD_PATCH_VERSION__ = "6.6.1";
 
   function readNvFromStorage() {
     try {
@@ -85,7 +85,7 @@
     group.innerHTML =
       '<label>NVIDIA API Key <span style="color:#76B900;font-size:11px">(build.nvidia.com)</span></label>' +
       '<input type="password" id="keyNvidia" placeholder="nvapi-..." autocomplete="off" style="width:100%;margin-top:4px" />' +
-      '<p style="font-size:11px;color:#888;margin:6px 0 0">Family Nvidia / Kimi / GLM / Qwen NVIDIA / DeepSeek → integrate.api.nvidia.com (bukan OpenRouter).</p>';
+      '<p style="font-size:11px;color:#888;margin:6px 0 0">Nvidia / Kimi / GLM / DeepSeek → integrate.api.nvidia.com (bukan OpenRouter).</p>';
     body.appendChild(group);
     var inp = document.getElementById("keyNvidia");
     if (inp) {
@@ -119,7 +119,7 @@
       el.style.cssText = "font-size:11px;color:#7c6af7;margin:14px 0 4px;opacity:.95";
       body.appendChild(el);
     }
-    el.textContent = "RolxDesk patch v" + window.__RD_PATCH_VERSION__ + " · NVIDIA via proxy";
+    el.textContent = "RolxDesk patch v" + window.__RD_PATCH_VERSION__ + " · NVIDIA live IDs";
   }
 
   function patchSaveLoad() {
@@ -170,34 +170,88 @@
     return "";
   }
 
-  /** Model/family yang WAJIB lewat NVIDIA key, bukan OpenRouter */
+  // Katalog resmi dari integrate.api.nvidia.com/v1/models (okt 2026)
+  var NV_CATALOG = {
+    nvidia: [
+      { id: "nvidia/nemotron-3-super-120b-a12b", name: "Nemotron 3 Super 120B" },
+      { id: "nvidia/nemotron-3-ultra-550b-a55b", name: "Nemotron 3 Ultra 550B" },
+      { id: "nvidia/nemotron-3.5-lightning-30b-a3b", name: "Nemotron 3.5 Lightning 30B" },
+      { id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", name: "Nemotron 3 Nano Omni" },
+      { id: "nvidia/nemotron-nano-3-30b-a3b", name: "Nemotron Nano 3 30B" },
+      { id: "meta/muse-glimmer-30b", name: "Muse Glimmer 30B" },
+      { id: "google/gemma-4-31b-it", name: "Gemma 4 31B" },
+      { id: "openai/gpt-oss-20b", name: "GPT-OSS 20B" }
+    ],
+    kimi: [
+      { id: "moonshotai/kimi-k3", name: "Kimi K3" },
+      { id: "moonshotai/kimi-k2.6", name: "Kimi K2.6" }
+    ],
+    glm: [
+      { id: "z-ai/glm-5.3", name: "GLM 5.3" },
+      { id: "z-ai/glm-5.3-flash", name: "GLM 5.3 Flash" }
+    ],
+    deepseek: [{ id: "deepseek-ai/deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash" }],
+    qwen_nv: [] // tidak ada Qwen di katalog NVIDIA saat ini
+  };
+
+  function patchModelsCatalog() {
+    try {
+      if (typeof MODELS === "undefined") return;
+      MODELS.nvidia = NV_CATALOG.nvidia.slice();
+      MODELS.kimi = NV_CATALOG.kimi.slice();
+      MODELS.glm = NV_CATALOG.glm.slice();
+      MODELS.deepseek = NV_CATALOG.deepseek.slice();
+      MODELS.qwen_nv = [];
+      // Refresh dropdown kalau family nvidia-ish aktif
+      var fam = currentFamily();
+      var sel = document.getElementById("modelSelect");
+      if (sel && NV_CATALOG[fam]) {
+        var list = NV_CATALOG[fam];
+        var cur = sel.value;
+        sel.innerHTML = list
+          .map(function (m) {
+            return '<option value="' + m.id + '">' + m.name + "</option>";
+          })
+          .join("");
+        var ids = list.map(function (m) {
+          return m.id;
+        });
+        if (ids.indexOf(cur) >= 0) sel.value = cur;
+        else if (list[0]) sel.value = list[0].id;
+      }
+    } catch (e) {}
+  }
+
   function shouldUseNvidia(fam, model) {
     var f = String(fam || "").toLowerCase();
     var m = String(model || "").toLowerCase();
-    if (f === "nvidia" || f === "kimi" || f === "glm" || f === "qwen_nv" || f === "deepseek") return true;
+    if (f === "nvidia" || f === "kimi" || f === "glm" || f === "deepseek" || f === "qwen_nv") return true;
     if (/^nvidia\//.test(m)) return true;
-    if (/^moonshotai\//.test(m) || /kimi-k3|kimi-k2/.test(m)) return true;
-    if (/^z-ai\//.test(m) || /^glm-/.test(m)) return true;
+    if (/^moonshotai\//.test(m)) return true;
+    if (/^z-ai\//.test(m)) return true;
     if (/^deepseek-ai\//.test(m)) return true;
-    if (f === "qwen" && /qwen2\.5-7b|qwen3-next|qwen3\.5-122b|qwen3-coder-480b/.test(m) && m.indexOf(":free") < 0)
-      return true;
+    if (/^meta\/muse-|^google\/gemma-4|^openai\/gpt-oss/.test(m)) return true;
     return false;
   }
 
   function resolveNvidiaModelId(modelId) {
-    var m = String(modelId || "").trim();
-    // OpenRouter free slug → NVIDIA slug
-    m = m.replace(/:free$/i, "");
+    var m = String(modelId || "").trim().replace(/:free$/i, "");
+    // Alias slug lama / salah → ID live
     var map = {
-      "nvidia/nemotron-3-super-120b-a12b": "nvidia/nemotron-3-super-120b-a12b",
-      "nvidia/nemotron-3.5-lightning": "nvidia/nemotron-3.5-lightning",
-      "nvidia/nemotron-3-ultra-550b-a55b": "nvidia/nemotron-3-ultra-550b-a55b",
-      "moonshotai/kimi-k3": "moonshotai/kimi-k3",
-      "moonshotai/kimi-k2.6": "moonshotai/kimi-k2.6",
-      "z-ai/glm-5.2": "z-ai/glm-5.2",
-      "z-ai/glm-4.7": "z-ai/glm-4.7",
-      "z-ai/glm-5-3": "z-ai/glm-5-3",
-      "z-ai/glm-5-3-flash": "z-ai/glm-5-3-flash"
+      "nvidia/nemotron-3.5-lightning": "nvidia/nemotron-3.5-lightning-30b-a3b",
+      "nvidia/nemotron-3-nano-omni-30b-a3b": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+      "deepseek-ai/deepseek-v4-pro-0813": "deepseek-ai/deepseek-v4.1-flash",
+      "deepseek-ai/deepseek-v3.2": "deepseek-ai/deepseek-v4.1-flash",
+      "deepseek-ai/deepseek-v4-flash": "deepseek-ai/deepseek-v4.1-flash",
+      "z-ai/glm-5.2": "z-ai/glm-5.3",
+      "z-ai/glm-4.7": "z-ai/glm-5.3",
+      "z-ai/glm-5": "z-ai/glm-5.3",
+      "z-ai/glm-5-3": "z-ai/glm-5.3",
+      "z-ai/glm-5-3-flash": "z-ai/glm-5.3-flash",
+      "z-ai/glm-5.3-flash": "z-ai/glm-5.3-flash",
+      "moonshotai/kimi-k2": "moonshotai/kimi-k2.6",
+      "meta/llama-3.3-70b-instruct": "nvidia/llama-3.1-nemotron-70b-instruct",
+      "meta/llama-3.1-8b-instruct": "nvidia/nemotron-nano-3-30b-a3b"
     };
     if (map[m]) return map[m];
     return m;
@@ -232,9 +286,15 @@
         data.message ||
         data.error ||
         "NVIDIA proxy HTTP " + r.status;
-      throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      var hint = "";
+      if (r.status === 404 || r.status === 410) {
+        hint =
+          " — model id tidak tersedia di NVIDIA (" +
+          mid +
+          "). Ganti model di dropdown (katalog v6.6.1).";
+      }
+      throw new Error((typeof msg === "string" ? msg : JSON.stringify(msg)) + hint);
     }
-    // Normalisasi ke string seperti callModel core
     if (typeof data === "string") return data;
     if (data.choices && data.choices[0]) {
       var c = data.choices[0].message || data.choices[0];
@@ -247,14 +307,12 @@
 
   function patchCallModel() {
     if (typeof window.callModel !== "function") return;
-    // Selalu re-wrap paling luar agar tidak ke OpenRouter
-    if (window.callModel.__rdFix660) return;
+    if (window.callModel.__rdFix661) return;
     var prev = window.callModel;
     window.callModel = async function (messages) {
       var fam = currentFamily();
       var model = currentModel();
       var nvKey = ensureNvInState() || readNvFromStorage();
-      // Simpan key dari form kalau user baru ngetik
       try {
         var inp = document.getElementById("keyNvidia") || document.getElementById("rdNvidiaKey");
         if (inp && String(inp.value || "").trim()) {
@@ -277,39 +335,12 @@
             maxTok = parseInt(state.settings.maxTokens ?? 2048, 10);
           }
         } catch (e1) {}
-        // JANGAN fallback ke OpenRouter
         return await callNvidiaViaProxy(messages, model, nvKey, temp, maxTok);
       }
       return prev.apply(this, arguments);
     };
-    window.callModel.__rdFix660 = true;
+    window.callModel.__rdFix661 = true;
     window.callModel.__rdNv = true;
-  }
-
-  function recolorAvatars() {
-    try {
-      document.querySelectorAll("[data-model], .model-chip, .avatar, .model-avatar, img[alt]").forEach(function (n) {
-        var t = (n.getAttribute("data-model") || n.getAttribute("alt") || n.textContent || "").toLowerCase();
-        var color = null;
-        if (/grok|xai/.test(t)) color = "#e8e8e8";
-        else if (/gemini|google/.test(t)) color = "#8ab4f8";
-        else if (/claude|anthropic/.test(t)) color = "#d4a27f";
-        else if (/cohere|north/.test(t)) color = "#39594d";
-        else if (/qwen/.test(t)) color = "#6366f1";
-        else if (/kimi|moonshot/.test(t)) color = "#c0c0c0";
-        else if (/glm|z-ai/.test(t)) color = "#3b82f6";
-        else if (/nemotron|nvidia/.test(t)) color = "#76B900";
-        else if (/deepseek/.test(t)) color = "#4d6bfe";
-        if (color && n.querySelector) {
-          n.querySelectorAll("svg, path, circle").forEach(function (s) {
-            try {
-              if (s.getAttribute("fill") !== "none") s.setAttribute("fill", color);
-              s.style.color = color;
-            } catch (e) {}
-          });
-        }
-      });
-    } catch (e) {}
   }
 
   function boot() {
@@ -317,17 +348,30 @@
     ensureNvInState();
     ensureNvidiaInput();
     injectVersionBadge();
+    patchModelsCatalog();
     patchCallModel();
-    recolorAvatars();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else setTimeout(boot, 50);
   setTimeout(boot, 400);
   setTimeout(boot, 1200);
-  setTimeout(boot, 3000);
+  setTimeout(function () {
+    patchModelsCatalog();
+    patchCallModel();
+  }, 2500);
   setInterval(function () {
     patchCallModel();
     ensureNvidiaInput();
     injectVersionBadge();
-  }, 5000);
+    patchModelsCatalog();
+  }, 6000);
+
+  // Saat user ganti family, refresh list model
+  document.addEventListener(
+    "change",
+    function (e) {
+      if (e.target && e.target.id === "familySelect") setTimeout(patchModelsCatalog, 30);
+    },
+    true
+  );
 })();
