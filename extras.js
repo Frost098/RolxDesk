@@ -1,45 +1,66 @@
-/* RolxDesk extras v5.5 — expanded tools */
+/* RolxDesk extras v5.6 — Spotify vs YouTube fixed + accurate channel search */
 (function () {
-  if (window.__RD_EXTRAS_V55__) return;
+  if (window.__RD_EXTRAS_V56__) return;
+  window.__RD_EXTRAS_V56__ = true;
   window.__RD_EXTRAS_V55__ = true;
-  window.__RD_EXTRAS_V54__ = true;
   window.__RD_EXTRAS__ = true;
 
-  function $(s, r) { return (r || document).querySelector(s); }
+  function $(s, r) {
+    return (r || document).querySelector(s);
+  }
   function withTimeout(promise, ms, label) {
     return new Promise(function (resolve, reject) {
       var done = false;
       var t = setTimeout(function () {
-        if (!done) { done = true; reject(new Error((label || "op") + " timeout")); }
+        if (!done) {
+          done = true;
+          reject(new Error((label || "op") + " timeout"));
+        }
       }, ms || 20000);
-      promise.then(function (v) {
-        if (!done) { done = true; clearTimeout(t); resolve(v); }
-      }, function (e) {
-        if (!done) { done = true; clearTimeout(t); reject(e); }
-      });
+      promise.then(
+        function (v) {
+          if (!done) {
+            done = true;
+            clearTimeout(t);
+            resolve(v);
+          }
+        },
+        function (e) {
+          if (!done) {
+            done = true;
+            clearTimeout(t);
+            reject(e);
+          }
+        }
+      );
     });
   }
   function unlockSend() {
     try {
-      if (window.state) { window.state.isStreaming = false; window.state._sendLock = false; }
+      if (window.state) {
+        window.state.isStreaming = false;
+        window.state._sendLock = false;
+      }
       var btn = document.getElementById("sendBtn");
-      if (btn) { btn.disabled = false; btn.removeAttribute("disabled"); }
+      if (btn) {
+        btn.disabled = false;
+        btn.removeAttribute("disabled");
+      }
       if (typeof setActivity === "function") setActivity("Siap", "");
     } catch (e) {}
   }
 
-  var GROK_STYLE = "\n\n[GAYA BICARA — GROK]\nBicara seperti Grok (xAI): cerdas, blak-blakan, sedikit sarkas, humor kering, anti-BS. Langsung ke inti. Bahasa ikut user. Jangan bilang kamu Kiro/Cursor.\n";
+  var GROK_STYLE =
+    "\n\n[GAYA BICARA — GROK]\nBicara seperti Grok (xAI): cerdas, blak-blakan, sedikit sarkas, humor kering, anti-BS. Langsung ke inti. Bahasa ikut user. Jangan bilang kamu Kiro/Cursor.\n";
   var TOOL_LAW =
     "\n\n[ROLXDESK TOOLS & SKILLS — WAJIB PAKAI]\n" +
     "Sistem mengeksekusi tag. JANGAN bilang tidak punya tools / tidak bisa akses.\n" +
-    "Media: [[PLAY: lagu]] [[YOUTUBE: query/channel]] [[IMG: prompt]]\n" +
-    "Web: [[BROWSE: url]] [[SEARCH: query]] [[HTTP: GET url]] [[FETCH_JSON: url]]\n" +
+    "LAGU/Spotify → [[PLAY: judul lagu tepat]] JANGAN YouTube untuk lagu.\n" +
+    "VIDEO/YouTube/channel → [[YOUTUBE: query atau channel]] JANGAN [[PLAY]].\n" +
+    "Video terbaru channel X → [[YOUTUBE: latest:X]] (format wajib).\n" +
+    "Web: [[BROWSE: url]] [[SEARCH: query]] [[HTTP: GET url]]\n" +
     "Code: [[RUN_PY]]code[[/RUN_PY]] [[RUN_JS]]code[[/RUN_JS]] [[CALC: expr]]\n" +
-    "Util: [[TIME]] [[UUID]] [[HASH: teks]] [[B64ENC: t]] [[B64DEC: t]]\n" +
-    "Extra: [[WEATHER: kota]] [[TRANSLATE: lang|teks]] [[REGEX: pattern|teks]] [[SLUG: teks]]\n" +
-    "[[UNIT: 100 km to mi]] [[COLOR: #1a73e8]] [[QR: teks]] [[DIFF: a|||b]]\n" +
-    "Play lagu → [[PLAY]]. Video channel → [[YOUTUBE]]. JANGAN browse youtube/results.\n" +
-    "Python=Pyodide. Research=SEARCH lalu BROWSE link nyata. Jangan ngarang.\n";
+    "JANGAN browse youtube.com/results. JANGAN ngarang judul/link.\n";
 
   function patchContinuity() {
     try {
@@ -48,7 +69,7 @@
         if (CONTINUITY.indexOf("TOOLS & SKILLS") === -1) CONTINUITY += TOOL_LAW;
       }
     } catch (e) {}
-    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd55) {
+    if (typeof window.injectPersona === "function" && !window.injectPersona.__rd56) {
       var orig = window.injectPersona;
       window.injectPersona = function (m) {
         var out = orig(m);
@@ -60,42 +81,79 @@
         }
         return out;
       };
-      window.injectPersona.__rd55 = true;
+      window.injectPersona.__rd56 = true;
     }
   }
 
-  function wantsYoutube(u) { return /(youtube|youtu\.be|putar\s*video|play\s*video|tonton|video\s+terbaru)/i.test(u); }
-  function wantsMusic(u) { return /(?:^|[\s\"'])(?:play|putar|mainkan)\b|\blagu\b|\bsong\b|spotify|lirik/i.test(u); }
-  function extractSongQuery(u) {
+  function wantsYoutube(u) {
+    return /youtube|youtu\.be|\bvideo\b|tonton|channel|youtuber|livestream|\blive\b/i.test(u);
+  }
+  function wantsSpotify(u) {
+    return /spotify|\btrack\b|\blagu\b|\bsong\b|\bmusik\b|lirik|montagem/i.test(u);
+  }
+  function wantsMusicPlay(u) {
+    return /(?:^|[\s"'])(?:play|putar|mainkan)\b/i.test(u) && !wantsYoutube(u);
+  }
+
+  function extractMediaQuery(u) {
     var t = String(u || "").trim();
-    var m = t.match(/(?:play|putar|mainkan)\s+(?:lagu\s+|musik\s+|song\s+|video\s+)?[\"']?([^\"'\n]+?)[\"']?\s*$/i);
-    if (m) return m[1].replace(/[.!?]+$/, "").trim();
-    return t.replace(/^(?:coba\s+)?(?:research|cari|play|putar)\s*/i, "").slice(0, 80).trim() || "lofi";
+    // video terbaru dari/oleh CHANNEL
+    var ch =
+      t.match(/(?:video\s+)?terbaru\s+(?:dari|oleh|by|channel)\s+["']?([^"'\n]+?)["']?\s*$/i) ||
+      t.match(/(?:latest|newest)\s+(?:video\s+)?(?:from|by|of)\s+["']?([^"'\n]+?)["']?\s*$/i) ||
+      t.match(/putar\s+video\s+terbaru\s+(?:dari\s+|oleh\s+)?["']?([^"'\n]+?)["']?\s*$/i);
+    if (ch) return { kind: "yt-latest", q: ch[1].replace(/[.!?]+$/, "").trim() };
+
+    // explicit spotify
+    var sp =
+      t.match(/(?:spotify|track|lagu|song)\s+(?:play\s+|putar\s+)?["']?([^"'\n]+?)["']?\s*$/i) ||
+      t.match(/(?:play|putar|mainkan)\s+(?:lagu\s+|musik\s+|song\s+|track\s+)?["']?([^"'\n]+?)["']?\s*$/i);
+    if (sp && !/video/i.test(t)) return { kind: "spotify", q: sp[1].replace(/[.!?]+$/, "").trim() };
+
+    // youtube / video
+    var yt = t.match(/(?:play|putar|tonton)\s+(?:video\s+)?["']?([^"'\n]+?)["']?\s*$/i);
+    if (yt && wantsYoutube(t)) return { kind: "youtube", q: yt[1].replace(/[.!?]+$/, "").trim() };
+
+    // generic play
+    var g = t.match(/(?:play|putar|mainkan)\s+["']?([^"'\n]+?)["']?\s*$/i);
+    if (g) {
+      var qq = g[1].replace(/[.!?]+$/, "").trim();
+      if (wantsYoutube(t)) return { kind: "youtube", q: qq };
+      return { kind: "spotify", q: qq };
+    }
+    return { kind: "unknown", q: t.slice(0, 100) };
   }
 
   function forceToolsExpanded(userText, assistantText) {
     var out = assistantText || "";
     var u = String(userText || "");
-    var already = function (tag) { return new RegExp("\\[\\[" + tag, "i").test(out); };
-    if (wantsMusic(u) || wantsYoutube(u) || /\b(play|putar|mainkan)\b/i.test(u)) {
-      out = out.replace(/\[\[BROWSE:\s*https?:\/\/(?:www\.)?youtube\.com\/[^\]]*\]\]/gi, "");
-      var q = extractSongQuery(u);
-      if (wantsYoutube(u) && !/\blagu\b|\bsong\b/i.test(u)) {
-        if (!already("YOUTUBE")) out += "\n[[YOUTUBE: " + q.slice(0, 120) + "]]\n";
-      } else if (!already("PLAY") && !already("YOUTUBE")) {
-        out += "\n[[PLAY: " + q.slice(0, 80) + "]]\n";
+    var already = function (tag) {
+      return new RegExp("\\[\\[" + tag, "i").test(out);
+    };
+    // strip wrong browse to yt search pages
+    out = out.replace(/\[\[BROWSE:\s*https?:\/\/(?:www\.)?youtube\.com\/results[^\]]*\]\]/gi, "");
+
+    if (wantsMusicPlay(u) || wantsYoutube(u) || wantsSpotify(u) || /\b(play|putar|mainkan)\b/i.test(u)) {
+      var med = extractMediaQuery(u);
+      if (med.kind === "yt-latest" || med.kind === "youtube" || (wantsYoutube(u) && !wantsSpotify(u))) {
+        if (!already("YOUTUBE")) {
+          var yq = med.kind === "yt-latest" ? "latest:" + med.q : med.q;
+          out += "\n[[YOUTUBE: " + yq.slice(0, 120) + "]]\n";
+        }
+        // hapus PLAY salah
+        out = out.replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
+      } else if (med.kind === "spotify" || wantsSpotify(u) || wantsMusicPlay(u)) {
+        if (!already("PLAY")) out += "\n[[PLAY: " + med.q.slice(0, 80) + "]]\n";
+        out = out.replace(/\[\[YOUTUBE:\s*[^\]]+\]\]/gi, "");
       }
     }
     if (/(jalankan|run).*\b(js|javascript)\b|```(?:js|javascript)/i.test(u) && !/\[\[RUN_JS/i.test(out)) {
       var jm = u.match(/```(?:js|javascript)\s*([\s\S]*?)```/i);
       if (jm) out += "\n[[RUN_JS]]" + jm[1].trim() + "[[/RUN_JS]]\n";
     }
-    if ((/\bpython\b|```py|pip install/i.test(u)) && !/\[\[RUN_PY/i.test(out)) {
+    if (/\bpython\b|```py|pip install/i.test(u) && !/\[\[RUN_PY/i.test(out)) {
       var pm = u.match(/```(?:python|py)?\s*([\s\S]*?)```/i);
       var code = pm ? pm[1].trim() : "print(2+2)";
-      if (/pip install|apt-get|opencv|pyzbar|libzbar/i.test(u)) {
-        out += "\n[Sandbox] Vercel/browser tidak menjalankan apt-get atau native OpenCV. Python=Pyodide.\n";
-      }
       out += "\n[[RUN_PY]]" + code + "[[/RUN_PY]]\n";
     }
     out = out.replace(/Tunggu hasil[^\n]*/gi, "");
@@ -103,10 +161,12 @@
   }
 
   function patchForceTools() {
-    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd55) {
+    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd56) {
       var prev = window.forceToolsFromUser;
-      window.forceToolsFromUser = function (ut, at) { return forceToolsExpanded(ut, prev(ut, at)); };
-      window.forceToolsFromUser.__rd55 = true;
+      window.forceToolsFromUser = function (ut, at) {
+        return forceToolsExpanded(ut, prev(ut, at));
+      };
+      window.forceToolsFromUser.__rd56 = true;
     } else if (typeof window.forceToolsFromUser !== "function") {
       window.forceToolsFromUser = forceToolsExpanded;
     }
@@ -118,148 +178,384 @@
     if (!$("#rd-yt-css")) {
       var st = document.createElement("style");
       st.id = "rd-yt-css";
-      st.textContent = "#rd-yt{position:fixed;z-index:10000;background:#111;border:1px solid #333;border-radius:12px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.45);touch-action:none}#rd-yt .rd-yt-bar{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#1a1a1a;cursor:move;user-select:none}#rd-yt .rd-yt-title{flex:1;font:12px system-ui;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#rd-yt .rd-yt-btn{background:none;border:0;color:#aaa;font-size:14px;cursor:pointer;padding:2px 6px}#rd-yt.rd-yt-min #rd-yt-frame-wrap{display:none}#rd-yt.rd-yt-min{width:220px!important}";
+      st.textContent =
+        "#rd-yt{position:fixed;z-index:10000;background:#111;border:1px solid #333;border-radius:12px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.45);touch-action:none}#rd-yt .rd-yt-bar{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#1a1a1a;cursor:move;user-select:none}#rd-yt .rd-yt-title{flex:1;font:12px system-ui;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#rd-yt .rd-yt-btn{background:none;border:0;color:#aaa;font-size:14px;cursor:pointer;padding:2px 6px}#rd-yt.rd-yt-min #rd-yt-frame-wrap{display:none}#rd-yt.rd-yt-min{width:220px!important}";
       document.head.appendChild(st);
     }
     panel = document.createElement("div");
     panel.id = "rd-yt";
     panel.style.cssText = "right:12px;bottom:88px;width:min(360px,92vw)";
-    panel.innerHTML = '<div class="rd-yt-bar"><span class="rd-yt-title" id="rd-yt-title">YouTube</span><button type="button" class="rd-yt-btn" id="rd-yt-min">\u2014</button><button type="button" class="rd-yt-btn" id="rd-yt-close">\u00d7</button></div><div id="rd-yt-frame-wrap"><iframe id="rd-yt-frame" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" style="width:100%;aspect-ratio:16/9;border:0;display:block;background:#000"></iframe></div>';
+    panel.innerHTML =
+      '<div class="rd-yt-bar"><span class="rd-yt-title" id="rd-yt-title">YouTube</span><button type="button" class="rd-yt-btn" id="rd-yt-min">\u2014</button><button type="button" class="rd-yt-btn" id="rd-yt-close">\u00d7</button></div><div id="rd-yt-frame-wrap"><iframe id="rd-yt-frame" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" style="width:100%;aspect-ratio:16/9;border:0;display:block;background:#000"></iframe></div>';
     document.body.appendChild(panel);
-    document.getElementById("rd-yt-min").onclick = function (e) { e.stopPropagation(); panel.classList.toggle("rd-yt-min"); };
-    document.getElementById("rd-yt-close").onclick = function (e) { e.stopPropagation(); panel.style.display = "none"; var f = document.getElementById("rd-yt-frame"); if (f) f.src = ""; };
+    document.getElementById("rd-yt-min").onclick = function (e) {
+      e.stopPropagation();
+      panel.classList.toggle("rd-yt-min");
+    };
+    document.getElementById("rd-yt-close").onclick = function (e) {
+      e.stopPropagation();
+      panel.style.display = "none";
+      var f = document.getElementById("rd-yt-frame");
+      if (f) f.src = "";
+    };
     return panel;
+  }
+
+  function loadYtubersLocal() {
+    try {
+      return JSON.parse(localStorage.getItem("rd_youtubers_v1") || "[]");
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function matchYtuber(name) {
+    var n = String(name || "")
+      .toLowerCase()
+      .replace(/\s+/g, "");
+    var list = loadYtubersLocal();
+    for (var i = 0; i < list.length; i++) {
+      var c = list[i];
+      var cn = String(c.name || c.query || "")
+        .toLowerCase()
+        .replace(/\s+/g, "");
+      if (cn && (cn.indexOf(n) >= 0 || n.indexOf(cn) >= 0)) return c;
+    }
+    return null;
   }
 
   async function playYoutubeSmart(q) {
     unlockSend();
+    q = String(q || "").trim();
+    if (!q) return "Query YouTube kosong";
+
+    // Direct URL / id
+    var idm =
+      q.match(/[?&]v=([A-Za-z0-9_-]{11})/) ||
+      q.match(/youtu\.be\/([A-Za-z0-9_-]{11})/) ||
+      (/^[A-Za-z0-9_-]{11}$/.test(q) ? [null, q] : null);
+    if (idm) return embedYt(idm[1], q);
+
+    var channelName = null;
+    var latest = false;
+    if (/^latest:/i.test(q)) {
+      latest = true;
+      channelName = q.replace(/^latest:/i, "").trim();
+    } else {
+      var cm =
+        q.match(/^(?:video\s+)?terbaru\s+(?:dari\s+|oleh\s+)?(.+)$/i) ||
+        q.match(/^latest\s+(?:from\s+|by\s+)?(.+)$/i);
+      if (cm) {
+        latest = true;
+        channelName = cm[1].trim();
+      }
+    }
+
     try {
-      var r = await withTimeout(fetch("/api/yt-search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q: q }) }), 18000, "yt");
-      var j = await r.json().catch(function () { return {}; });
+      // 1) Saved YouTuber list
+      if (channelName) {
+        var saved = matchYtuber(channelName);
+        if (saved && saved.lastVideoId && /^[A-Za-z0-9_-]{11}$/.test(saved.lastVideoId)) {
+          // refresh latest from API
+          try {
+            var cr = await withTimeout(
+              fetch("/api/yt-channel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ channelId: saved.id, q: saved.name, channel: true })
+              }),
+              15000,
+              "yt-ch"
+            );
+            var cj = await cr.json().catch(function () {
+              return {};
+            });
+            if (cr.ok && cj.latest && cj.latest.id) {
+              return embedYt(
+                cj.latest.id,
+                (cj.latest.title || "") + (cj.channel && cj.channel.name ? " · " + cj.channel.name : "")
+              );
+            }
+          } catch (e0) {}
+          return embedYt(saved.lastVideoId, saved.lastTitle || saved.name);
+        }
+      }
+
+      // 2) Channel latest via API
+      if (latest && channelName) {
+        var r1 = await withTimeout(
+          fetch("/api/yt-search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ q: channelName, channel: true, action: "channel" })
+          }),
+          18000,
+          "yt"
+        );
+        var j1 = await r1.json().catch(function () {
+          return {};
+        });
+        if (r1.ok && j1.latest && j1.latest.id) {
+          return embedYt(
+            j1.latest.id,
+            (j1.latest.title || "") +
+              (j1.channel && j1.channel.name ? " · " + j1.channel.name : "")
+          );
+        }
+        // fallback search with channel name + sort by score (API already scores)
+        q = "video terbaru " + channelName;
+      }
+
+      // 3) Normal search
+      var r = await withTimeout(
+        fetch("/api/yt-search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ q: q })
+        }),
+        18000,
+        "yt"
+      );
+      var j = await r.json().catch(function () {
+        return {};
+      });
       if (r.ok && j.id && /^[A-Za-z0-9_-]{11}$/.test(j.id)) {
-        var panel = ensureYtPanel();
-        var f = document.getElementById("rd-yt-frame"); var t = document.getElementById("rd-yt-title");
-        if (t) t.textContent = (j.title || j.id).slice(0, 48);
-        if (f) f.src = "https://www.youtube-nocookie.com/embed/" + j.id + "?autoplay=1&rel=0";
-        panel.style.display = "block";
-        return "\u25b6\ufe0f " + (j.title || j.id) + (j.uploader ? " \u00b7 " + j.uploader : "") + "\nhttps://youtu.be/" + j.id;
+        return embedYt(j.id, (j.title || j.id) + (j.uploader ? " · " + j.uploader : ""));
       }
     } catch (e) {}
-    return "Cari di YouTube: " + q;
+    return "Tidak ketemu di YouTube: " + q;
   }
 
-  window.playSpotify = async function (query) {
-    if (!query) return; unlockSend();
-    var q = String(query).trim();
-    await playYoutubeSmart(q + " official audio");
-  };
+  function embedYt(id, title) {
+    var panel = ensureYtPanel();
+    var f = document.getElementById("rd-yt-frame");
+    var t = document.getElementById("rd-yt-title");
+    if (t) t.textContent = String(title || id).slice(0, 48);
+    if (f) f.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
+    panel.style.display = "block";
+    return "▶️ " + (title || id) + "\nhttps://youtu.be/" + id;
+  }
+
+  /** Spotify: pakai core playSpotify / token; JANGAN lempar ke YouTube */
+  async function playSpotifyReal(query) {
+    unlockSend();
+    var q = String(query || "").trim();
+    if (!q) return "Query Spotify kosong";
+
+    // Core function (jika belum di-override)
+    if (typeof window.__rdCorePlaySpotify === "function") {
+      try {
+        await window.__rdCorePlaySpotify(q);
+        return "🎵 Spotify: " + q;
+      } catch (e) {}
+    }
+
+    // Token user → Web API search
+    var token =
+      (window.state && state.keys && (state.keys.spotify || state.keys.spotifyAccess)) ||
+      localStorage.getItem("rd_spotify") ||
+      localStorage.getItem("wrapped_spotify") ||
+      "";
+    token = String(token).replace(/^Bearer\s+/i, "");
+    if (token) {
+      try {
+        var sr = await fetch(
+          "https://api.spotify.com/v1/search?type=track&limit=5&q=" + encodeURIComponent(q),
+          { headers: { Authorization: "Bearer " + token } }
+        );
+        var sd = await sr.json().catch(function () {
+          return {};
+        });
+        if (sr.ok && sd.tracks && sd.tracks.items && sd.tracks.items.length) {
+          // Pilih track paling mirip judul
+          var ql = q.toLowerCase();
+          var best = sd.tracks.items[0];
+          var bestScore = -1;
+          sd.tracks.items.forEach(function (tr) {
+            var name = String(tr.name || "").toLowerCase();
+            var artists = (tr.artists || [])
+              .map(function (a) {
+                return a.name;
+              })
+              .join(" ")
+              .toLowerCase();
+            var score = 0;
+            ql.split(/\s+/).forEach(function (tok) {
+              if (tok.length > 1 && name.indexOf(tok) >= 0) score += 3;
+              if (tok.length > 1 && artists.indexOf(tok) >= 0) score += 2;
+            });
+            if (name === ql) score += 10;
+            if (score > bestScore) {
+              bestScore = score;
+              best = tr;
+            }
+          });
+          if (typeof showSpotifyEmbed === "function") showSpotifyEmbed(best.id);
+          else embedSpotifyIframe(best.id);
+          var label =
+            best.name +
+            " — " +
+            (best.artists || [])
+              .map(function (a) {
+                return a.name;
+              })
+              .join(", ");
+          if (typeof showToast === "function") showToast("Play: " + label, "success");
+          return "🎵 " + label + "\nhttps://open.spotify.com/track/" + best.id;
+        }
+      } catch (e1) {}
+    }
+
+    // Server client-credentials search
+    try {
+      var r = await withTimeout(
+        fetch("/api/spotify?action=search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ q: q })
+        }),
+        12000,
+        "sp"
+      );
+      var j = await r.json().catch(function () {
+        return {};
+      });
+      if (r.ok && j.id) {
+        if (typeof showSpotifyEmbed === "function") showSpotifyEmbed(j.id);
+        else embedSpotifyIframe(j.id);
+        var lab = (j.name || q) + (j.artists ? " — " + j.artists : "");
+        return "🎵 " + lab + "\nhttps://open.spotify.com/track/" + j.id;
+      }
+    } catch (e2) {}
+
+    return (
+      "Spotify: tidak ketemu \"" +
+      q +
+      "\". Isi Spotify token di Settings, atau coba judul lebih spesifik."
+    );
+  }
+
+  function embedSpotifyIframe(trackId) {
+    var wrap = document.getElementById("spotifyEmbedWrap");
+    var iframe = document.getElementById("spotifyEmbed");
+    if (iframe) {
+      iframe.src = "https://open.spotify.com/embed/track/" + trackId + "?utm_source=generator&autoplay=1";
+      iframe.style.display = "block";
+      if (wrap) {
+        wrap.style.display = "block";
+        wrap.classList && wrap.classList.add("show");
+      }
+      var bar = document.getElementById("spotifyBar");
+      if (bar) bar.classList.add("show");
+    }
+  }
+
+  // Jangan timpa core sebelum disimpan
+  if (typeof window.playSpotify === "function" && !window.__rdCorePlaySpotify) {
+    window.__rdCorePlaySpotify = window.playSpotify;
+  }
+  window.playSpotify = playSpotifyReal;
 
   async function runServerJs(code) {
     try {
-      var r = await withTimeout(fetch("/api/run-js", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code }) }), 12000, "run-js");
+      var r = await withTimeout(
+        fetch("/api/run-js", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: code })
+        }),
+        12000,
+        "run-js"
+      );
       var j = await r.json();
       return (j.output || j.error || "").slice(0, 8000);
-    } catch (e) { return "JS error: " + (e.message || e); }
+    } catch (e) {
+      return "JS error: " + (e.message || e);
+    }
   }
 
   async function simpleHash(text) {
     try {
       var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-      return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
-    } catch (e) { return "hash gagal"; }
+      return Array.from(new Uint8Array(buf))
+        .map(function (b) {
+          return b.toString(16).padStart(2, "0");
+        })
+        .join("");
+    } catch (e) {
+      return "hash gagal";
+    }
   }
 
   async function runExtraTags(content) {
     if (!content) return content;
-    var out = content; unlockSend();
+    var out = content;
+    unlockSend();
     try {
       var yts = [...out.matchAll(/\[\[YOUTUBE:\s*([^\]]+)\]\]/gi)];
       for (var yi = 0; yi < yts.length; yi++) {
         out = out.replace(yts[yi][0], "\n" + (await playYoutubeSmart(yts[yi][1].trim())) + "\n");
       }
-      out = out.replace(/\[\[PLAY:\s*([^\]]+)\]\]/gi, function (_, q) {
-        try { window.playSpotify(q.trim()); } catch (e) {}
-        return "\n\ud83c\udfb5 " + q.trim() + "\n";
-      });
+      var plays = [...out.matchAll(/\[\[PLAY:\s*([^\]]+)\]\]/gi)];
+      for (var pi = 0; pi < plays.length; pi++) {
+        var res = await playSpotifyReal(plays[pi][1].trim());
+        out = out.replace(plays[pi][0], "\n" + res + "\n");
+      }
       var jsBlocks = [...out.matchAll(/\[\[RUN_JS\]\]([\s\S]*?)\[\[\/RUN_JS\]\]/gi)];
       for (var ji = 0; ji < jsBlocks.length; ji++) {
-        out = out.replace(jsBlocks[ji][0], "\n```\n[JS output]\n" + (await runServerJs(jsBlocks[ji][1].trim())) + "\n```\n");
+        out = out.replace(
+          jsBlocks[ji][0],
+          "\n```\n[JS output]\n" + (await runServerJs(jsBlocks[ji][1].trim())) + "\n```\n"
+        );
       }
       var hashes = [...out.matchAll(/\[\[HASH:\s*([^\]]+)\]\]/gi)];
       for (var hi = 0; hi < hashes.length; hi++) {
-        out = out.replace(hashes[hi][0], "\nSHA-256: `" + (await simpleHash(hashes[hi][1].trim())) + "`\n");
+        out = out.replace(
+          hashes[hi][0],
+          "\nSHA-256: `" + (await simpleHash(hashes[hi][1].trim())) + "`\n"
+        );
       }
       out = out.replace(/\[\[B64ENC:\s*([^\]]+)\]\]/gi, function (_, t) {
-        try { return "\n`" + btoa(unescape(encodeURIComponent(t))) + "`\n"; } catch (e) { return "\nb64enc gagal\n"; }
+        try {
+          return "\n`" + btoa(unescape(encodeURIComponent(t))) + "`\n";
+        } catch (e) {
+          return "\nb64enc gagal\n";
+        }
       });
       out = out.replace(/\[\[B64DEC:\s*([^\]]+)\]\]/gi, function (_, t) {
-        try { return "\n" + decodeURIComponent(escape(atob(t.trim()))) + "\n"; } catch (e) { return "\nb64dec gagal\n"; }
+        try {
+          return "\n" + decodeURIComponent(escape(atob(t.trim()))) + "\n";
+        } catch (e) {
+          return "\nb64dec gagal\n";
+        }
       });
       out = out.replace(/\[\[CALC:\s*([^\]]+)\]\]/gi, function (_, expr) {
         try {
           var safe = String(expr).replace(/[^0-9+\-*/().%\s]/g, "");
-          return "\n\ud83d\udd22 " + safe + " = **" + Function('"use strict";return (' + safe + ')')() + "**\n";
-        } catch (e) { return "\ncalc gagal\n"; }
-      });
-      out = out.replace(/\[\[TIME\]\]/gi, function () { return "\n\ud83d\udd50 " + new Date().toLocaleString("id-ID") + "\n"; });
-      out = out.replace(/\[\[UUID\]\]/gi, function () {
-        return "\n`" + "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-          var r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
-        }) + "`\n";
-      });
-      out = out.replace(/\[\[REGEX:\s*([^|\]]+)\|([^\]]*)\]\]/gi, function (_, pat, text) {
-        try {
-          var re = new RegExp(pat.trim(), "g");
-          var m = String(text).match(re);
-          return "\nRegex `" + pat.trim() + "` → " + (m ? m.map(function (x) { return "`" + x + "`"; }).join(", ") : "(tidak match)") + "\n";
-        } catch (e) { return "\nRegex error\n"; }
-      });
-      out = out.replace(/\[\[SLUG:\s*([^\]]+)\]\]/gi, function (_, s) {
-        var slug = String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-        return "\nSlug: `" + slug + "`\n";
-      });
-      out = out.replace(/\[\[UNIT:\s*([^\]]+)\]\]/gi, function (_, expr) {
-        try {
-          var e = String(expr).toLowerCase().replace(/,/g, ".");
-          var m = e.match(/([\d.]+)\s*(km|mi|m|ft|kg|lb|c|f|cm|inch|in)\s*(?:to|in|->)?\s*(km|mi|m|ft|kg|lb|c|f|cm|inch|in)?/);
-          if (!m) return "\nUnit: format `100 km to mi`\n";
-          var v = parseFloat(m[1]), from = m[2], to = m[3] || (from === "km" ? "mi" : from === "c" ? "f" : from);
-          var map = { km: 1000, m: 1, mi: 1609.34, ft: 0.3048, cm: 0.01, inch: 0.0254, in: 0.0254 };
-          var outv;
-          if ((from === "c" || from === "f") && (to === "c" || to === "f")) outv = from === "c" ? (v * 9/5 + 32) : ((v - 32) * 5/9);
-          else if ((from === "kg" || from === "lb") && (to === "kg" || to === "lb")) outv = from === "kg" ? v * 2.20462 : v / 2.20462;
-          else if (map[from] && map[to]) outv = v * map[from] / map[to];
-          else return "\nUnit tidak didukung\n";
-          return "\n\ud83d\udccf " + v + " " + from + " = **" + (Math.round(outv * 1000) / 1000) + " " + to + "**\n";
-        } catch (err) { return "\nUnit gagal\n"; }
-      });
-      out = out.replace(/\[\[COLOR:\s*([^\]]+)\]\]/gi, function (_, c) {
-        var hex = String(c).trim();
-        if (!/^#?[0-9a-fA-F]{3,8}$/.test(hex)) return "\nColor: pakai #RRGGBB\n";
-        if (hex[0] !== "#") hex = "#" + hex;
-        var h = hex.replace("#", "");
-        if (h.length === 3) h = h.split("").map(function (x) { return x + x; }).join("");
-        return "\n\ud83c\udfa8 " + hex + " → rgb(" + parseInt(h.slice(0,2),16) + ", " + parseInt(h.slice(2,4),16) + ", " + parseInt(h.slice(4,6),16) + ")\n";
-      });
-      out = out.replace(/\[\[QR:\s*([^\]]+)\]\]/gi, function (_, text) {
-        return "\n![QR](https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent(text.trim()) + ")\n";
-      });
-      out = out.replace(/\[\[DIFF:\s*([\s\S]*?)\|\|\|([\s\S]*?)\]\]/gi, function (_, a, b) {
-        var A = String(a).split("\n"), B = String(b).split("\n"), lines = [], n = Math.max(A.length, B.length);
-        for (var i = 0; i < n; i++) {
-          if (A[i] === B[i]) lines.push("  " + (A[i] || ""));
-          else { if (A[i] != null) lines.push("- " + A[i]); if (B[i] != null) lines.push("+ " + B[i]); }
+          return (
+            "\n🔢 " +
+            safe +
+            " = **" +
+            Function('"use strict";return (' + safe + ")")() +
+            "**\n"
+          );
+        } catch (e) {
+          return "\ncalc gagal\n";
         }
-        return "\n```diff\n" + lines.join("\n").slice(0, 2000) + "\n```\n";
       });
-      var fetches = [...out.matchAll(/\[\[(?:FETCH_JSON|HTTP):\s*(?:GET\s+)?([^\]]+)\]\]/gi)];
-      for (var fi = 0; fi < fetches.length; fi++) {
-        try {
-          var br = await withTimeout(fetch("/api/browse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: fetches[fi][1].trim(), mode: "text" }) }), 15000, "fetch");
-          var bj = await br.json();
-          out = out.replace(fetches[fi][0], "\n```\n" + String(bj.text || bj.title || "").slice(0, 3000) + "\n```\n");
-        } catch (e) { out = out.replace(fetches[fi][0], "\nFetch gagal\n"); }
-      }
+      out = out.replace(/\[\[TIME\]\]/gi, function () {
+        return "\n🕒 " + new Date().toLocaleString("id-ID") + "\n";
+      });
+      out = out.replace(/\[\[UUID\]\]/gi, function () {
+        return (
+          "\n`" +
+          "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+            var r = (Math.random() * 16) | 0;
+            return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+          }) +
+          "`\n"
+        );
+      });
       out = out.replace(/Tunggu hasil[^\n]*/gi, "");
     } catch (e) {}
     unlockSend();
@@ -267,17 +563,21 @@
   }
 
   function patchRunAgentTags() {
-    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd55) {
+    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd56) {
       var orig = window.runAgentTags;
       window.runAgentTags = async function (content) {
         unlockSend();
         try {
           var mid = await withTimeout(Promise.resolve(orig(content)), 60000, "agent");
           return await runExtraTags(mid);
-        } catch (e) { unlockSend(); return "Error: " + (e.message || e); }
-        finally { unlockSend(); }
+        } catch (e) {
+          unlockSend();
+          return "Error: " + (e.message || e);
+        } finally {
+          unlockSend();
+        }
       };
-      window.runAgentTags.__rd55 = true;
+      window.runAgentTags.__rd56 = true;
     }
   }
 
@@ -290,27 +590,9 @@
       var fam = document.getElementById("familySelect");
       if (fam && !fam.querySelector('option[value="hosted"]')) {
         var opt = document.createElement("option");
-        opt.value = "hosted"; opt.textContent = "RD Hosted (gratis)";
+        opt.value = "hosted";
+        opt.textContent = "RD Hosted (gratis)";
         fam.appendChild(opt);
-      }
-      if (typeof window.callModel === "function" && !window.callModel.__rd55) {
-        var prevCall = window.callModel;
-        window.callModel = async function (msgs) {
-          try {
-            var mod = (document.getElementById("modelSelect") || {}).value || "";
-            var famV = (document.getElementById("familySelect") || {}).value;
-            var keys = (window.state && state.keys) || {};
-            var ids = j.models.map(function (m) { return m.id; });
-            if (j.hosted && (famV === "hosted" || ids.indexOf(mod) >= 0) && !keys.openrouter) {
-              var hr = await fetch("/api/hosted-chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: mod, messages: msgs }) });
-              var hd = await hr.json();
-              if (!hr.ok) throw new Error(hd.error || "hosted fail");
-              return hd;
-            }
-          } catch (e) {}
-          return prevCall.apply(this, arguments);
-        };
-        window.callModel.__rd55 = true;
       }
     } catch (e) {}
   }
@@ -320,6 +602,10 @@
     patchForceTools();
     patchRunAgentTags();
     injectHostedModels();
+    // pastikan core playSpotify tersimpan sebelum override
+    if (typeof window.playSpotify === "function" && !window.__rdCorePlaySpotify) {
+      // already set above if core loaded first
+    }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else setTimeout(boot, 100);
