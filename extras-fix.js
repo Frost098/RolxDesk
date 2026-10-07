@@ -391,7 +391,8 @@
     "\n[RD UTILITY TOOLS v7]\n" +
     "JSON → [[JSON_PRETTY]]...[[/JSON_PRETTY]]; URL → [[URL_ENCODE: teks]]; UUID → [[UUID]]; TIME → [[TIME]]; " +
     "Base64 → [[B64ENC: teks]] / [[B64DEC: teks]]; Regex → [[REGEX: pola|teks]]; Diff → [[DIFF: lama|||baru]]; " +
-    "Unit → [[UNIT: 100 km to mi]]; Color → [[COLOR: #76B900]]; QR → [[QR: teks]].\n";
+    "Unit → [[UNIT: 100 km to mi]]; Color → [[COLOR: #76B900]]; QR → [[QR: teks]].\n" +
+    "Custom MCP yang sudah dipasang boleh dipanggil dengan [[MCP:nama:tools/list]] atau [[MCP:nama:nama_tool?%7B%7D]].\n";
 
   function patchUtilityPrompt() {
     try {
@@ -473,7 +474,84 @@
     } catch (_) {}
   }
 
+  function readCustomMcps() {
+    try { return JSON.parse(localStorage.getItem("rd_custom_mcps") || "[]"); } catch (_) { return []; }
+  }
+  function saveCustomMcps(list) { localStorage.setItem("rd_custom_mcps", JSON.stringify(list || [])); }
+  function injectV8Settings() {
+    var body = document.querySelector("#settingsModal .modal-body");
+    if (!body || document.getElementById("rdMcpV8")) return;
+    var anchor = document.getElementById("customConnectorList") || document.getElementById("customBaseUrl");
+    var box = document.createElement("div");
+    box.id = "rdMcpV8";
+    box.innerHTML = '<hr style="border:none;border-top:1px solid var(--border);margin:14px 0">' +
+      '<div class="section-title">Custom MCP — pasang sendiri</div>' +
+      '<p style="font-size:.7rem;color:var(--text-muted);margin-bottom:8px">Masukkan URL MCP HTTP, API key, atau import JSON. Secret hanya disimpan di browser ini. Panggil lewat <code>[[MCP:nama:aksi]]</code>.</p>' +
+      '<div class="form-row"><div class="form-group"><label>Nama</label><input id="rdMcpName" placeholder="notion" /></div><div class="form-group"><label>URL MCP</label><input id="rdMcpUrl" placeholder="https://.../mcp" /></div></div>' +
+      '<div class="form-row"><div class="form-group"><label>API key (opsional)</label><input type="password" id="rdMcpKey" placeholder="Bearer key" /></div><div class="form-group"><label>Headers JSON</label><input id="rdMcpHeaders" placeholder="{&quot;X-Team&quot;:&quot;rd&quot;}" /></div></div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn-primary" id="rdMcpAdd">+ Pasang MCP</button><button type="button" class="btn-secondary" id="rdMcpImport">Import JSON</button></div>' +
+      '<div id="rdMcpList" style="margin-top:8px"></div>' +
+      '<div class="form-group" style="margin-top:10px"><label>Fish Audio reference ID (voice model)</label><input id="rdFishReference" placeholder="model-id dari Fish Audio" /></div>' +
+      '<div id="rdPatchV8" style="margin-top:12px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:.7rem;color:var(--text-muted)">RD v8 · next-gen open-source wrapped AI · tools ready</div>';
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(box, anchor.nextSibling); else body.appendChild(box);
+    var fish = document.getElementById("rdFishReference");
+    if (fish) fish.value = localStorage.getItem("rd_fish_reference") || "";
+    function render() {
+      var list = readCustomMcps(), el = document.getElementById("rdMcpList");
+      if (!el) return;
+      el.innerHTML = list.length ? list.map(function (x, i) { return '<div style="display:flex;justify-content:space-between;gap:6px;padding:5px 0;font-size:.72rem"><span><strong>' + String(x.name).replace(/[<>]/g, "") + '</strong> · ' + String(x.url).replace(/[<>]/g, "") + '</span><button type="button" class="btn-secondary" data-rd-mcp-del="' + i + '">Hapus</button></div>'; }).join("") : '<span style="font-size:.7rem;color:var(--text-muted)">Belum ada MCP custom.</span>';
+      el.querySelectorAll("[data-rd-mcp-del]").forEach(function (b) { b.onclick = function () { var a = readCustomMcps(); a.splice(Number(b.dataset.rdMcpDel), 1); saveCustomMcps(a); render(); }; });
+    }
+    document.getElementById("rdMcpAdd").onclick = function () {
+      var name = (document.getElementById("rdMcpName").value || "").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+      var url = (document.getElementById("rdMcpUrl").value || "").trim();
+      if (!name || !/^https:\/\//i.test(url)) return showToast("Isi nama dan URL HTTPS MCP", "error");
+      var headers = {};
+      try { headers = JSON.parse(document.getElementById("rdMcpHeaders").value || "{}"); } catch (_) { return showToast("Headers harus JSON valid", "error"); }
+      var key = (document.getElementById("rdMcpKey").value || "").trim();
+      if (key) headers.Authorization = /^Bearer\s/i.test(key) ? key : "Bearer " + key;
+      var a = readCustomMcps().filter(function (x) { return x.name !== name; }); a.push({ name: name, url: url, headers: headers }); saveCustomMcps(a); render(); showToast("MCP " + name + " terpasang", "success");
+    };
+    document.getElementById("rdMcpImport").onclick = function () {
+      var raw = prompt("Tempel JSON MCP: {name,url,headers} atau array konfigurasi"); if (!raw) return;
+      try { var parsed = JSON.parse(raw), incoming = Array.isArray(parsed) ? parsed : [parsed]; var a = readCustomMcps(); incoming.forEach(function (x) { if (x && x.name && /^https:\/\//i.test(x.url)) a = a.filter(function (y) { return y.name !== x.name; }).concat({ name: String(x.name).toLowerCase().replace(/[^a-z0-9_-]/g, "-"), url: x.url, headers: x.headers || {} }); }); saveCustomMcps(a); render(); showToast("Config MCP diimport", "success"); } catch (_) { showToast("JSON MCP tidak valid", "error"); }
+    };
+    render();
+    if (fish) fish.onchange = function () { localStorage.setItem("rd_fish_reference", fish.value.trim()); };
+  }
+
+  async function callCustomMcp(cfg, action) {
+    var headers = Object.assign({ "Content-Type": "application/json", Accept: "application/json, text/event-stream" }, cfg.headers || {});
+    var id = 1;
+    async function rpc(method, params) {
+      var r = await fetch(cfg.url, { method: "POST", headers: headers, body: JSON.stringify({ jsonrpc: "2.0", id: id++, method: method, params: params || {} }) });
+      var sessionId = r.headers.get("mcp-session-id"); if (sessionId) headers["Mcp-Session-Id"] = sessionId;
+      var text = await r.text(); if (!r.ok) throw new Error("MCP HTTP " + r.status + ": " + text.slice(0, 180));
+      var line = text.split("\n").map(function (x) { return x.replace(/^data:\s*/, "").trim(); }).find(function (x) { return x[0] === "{"; });
+      return line ? JSON.parse(line) : (text ? JSON.parse(text) : {});
+    }
+    await rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "RolxDesk", version: "v8" } }).catch(function (e) { if (!/already initialized|method not found/i.test(e.message)) throw e; });
+    var bits = String(action || "tools/list").split("?"), tool = bits[0];
+    if (tool === "list" || tool === "tools/list") return JSON.stringify(await rpc("tools/list", {}));
+    var args = {}; if (bits[1]) { try { args = JSON.parse(decodeURIComponent(bits.slice(1).join("?"))); } catch (_) {} }
+    return JSON.stringify(await rpc("tools/call", { name: tool, arguments: args }));
+  }
+  function patchCustomMcpRunner() {
+    if (typeof window.runMcpAction !== "function" || window.runMcpAction.__rdMcpV8) return;
+    var prev = window.runMcpAction;
+    window.runMcpAction = async function (service, action) {
+      var cfg = readCustomMcps().find(function (x) { return x.name === String(service).toLowerCase(); });
+      if (cfg) { setActivity("MCP " + service + "…", "busy"); try { var out = await callCustomMcp(cfg, action); setActivity("Siap", ""); return out; } catch (e) { setActivity("Siap", ""); return "MCP error: " + e.message; } }
+      return prev.apply(this, arguments);
+    };
+    window.runMcpAction.__rdMcpV8 = true;
+  }
+
   setTimeout(patchUtilityExecution, 80);
   setTimeout(patchUtilityExecution, 500);
   setTimeout(patchUtilityExecution, 1600);
+  setTimeout(injectV8Settings, 120);
+  setTimeout(injectV8Settings, 900);
+  setTimeout(patchCustomMcpRunner, 180);
+  setTimeout(patchCustomMcpRunner, 1200);
 })();

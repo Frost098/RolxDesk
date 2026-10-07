@@ -244,3 +244,13 @@ Prioritas tetap: tools jalan, UI tidak nutup header, error jujur.
 - Tool lokal baru: `JSON_PRETTY`, `URL_ENCODE`, `UUID`, `TIME`, `B64ENC`, `B64DEC`, `REGEX`, `DIFF`, `UNIT`, `COLOR`, dan `QR`.
 - Media tool harus mengembalikan status yang jujur: panel YouTube siap diputar, gagal dicari, atau error; tidak mengklaim audio/video sedang diputar jika belum ada hasil.
 - Rencana kolaborasi RD–cisypi dicatat sebagai rencana tertunda di `NOTES.md` dan belum diaktifkan.
+
+## 19. Next-gen v8 — voice, tabel, MCP, dan CisyPi
+
+- **Voice mobile:** SpeechRecognition dimulai di dalam gesture tap sebelum greeting TTS selesai. Mode Android memakai sesi non-continuous yang di-restart secara aman, sehingga Chrome mobile tidak kehilangan mic.
+- **Fish Audio:** request memakai model `s2.1-pro-free`, format body resmi, normalisasi loudness, dan optional `reference_id` dari Settings.
+- **Markdown table:** pipe table dengan separator valid dirender sebagai `<table>` horizontal-scroll, bukan teks bergaris yang berantakan.
+- **Persona:** jawaban default dibuat langsung, ringkas, hangat, dan mengikuti gaya user. AI diminta memakai tabel nyata untuk data tabular dan hanya panjang jika diperlukan.
+- **Custom MCP:** Settings → Custom MCP menerima URL HTTPS, API key, headers JSON, import config JSON, dan menjalankan `initialize`, `tools/list`, serta `tools/call` lewat tag `[[MCP:nama:aksi]]`.
+- **Patch badge:** Settings menampilkan RD v8 / next-gen wrapped AI.
+- **Rafli-links:** kartu RolxDesk sudah ada dan deskripsinya diperbarui menjadi positioning open-source next-gen. CisyPi tetap protected; RD tidak mengubah auth/proteksi CisyPi.
