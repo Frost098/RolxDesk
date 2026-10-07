@@ -251,7 +251,25 @@
       return {};
     });
     if (!r.ok) throw new Error(j.error || j.message || "Hosted HTTP " + r.status);
-    return j;
+    return normalizeHostedResponse(j);
+  }
+
+  function normalizeHostedResponse(data) {
+    if (typeof data === "string") return data;
+    if (!data || typeof data !== "object") return "Hosted tidak mengembalikan respons.";
+    var choice = data.choices && data.choices[0];
+    var msg = choice && choice.message;
+    var content = msg && msg.content;
+    if (Array.isArray(content)) {
+      content = content.map(function (part) {
+        return typeof part === "string" ? part : (part && (part.text || part.content)) || "";
+      }).join("\n");
+    }
+    if (content && String(content).trim()) {
+      return { content: String(content), reasoning: String((msg && (msg.reasoning || msg.reasoning_content)) || "") };
+    }
+    if (data.content && String(data.content).trim()) return { content: String(data.content) };
+    return { content: "Hosted model tidak mengirim teks final. Coba RD Free Auto atau model free lain." };
   }
 
   function clientOpenRouterKey() {
@@ -368,4 +386,94 @@
     },
     true
   );
+
+  var RD_UTIL_LAW =
+    "\n[RD UTILITY TOOLS v7]\n" +
+    "JSON → [[JSON_PRETTY]]...[[/JSON_PRETTY]]; URL → [[URL_ENCODE: teks]]; UUID → [[UUID]]; TIME → [[TIME]]; " +
+    "Base64 → [[B64ENC: teks]] / [[B64DEC: teks]]; Regex → [[REGEX: pola|teks]]; Diff → [[DIFF: lama|||baru]]; " +
+    "Unit → [[UNIT: 100 km to mi]]; Color → [[COLOR: #76B900]]; QR → [[QR: teks]].\n";
+
+  function patchUtilityPrompt() {
+    try {
+      if (typeof CONTINUITY === "string" && CONTINUITY.indexOf("RD UTILITY TOOLS v7") < 0) CONTINUITY += RD_UTIL_LAW;
+    } catch (_) {}
+  }
+
+  function b64Encode(text) {
+    try { return btoa(unescape(encodeURIComponent(String(text)))); } catch (_) { return "Base64 gagal"; }
+  }
+  function b64Decode(text) {
+    try { return decodeURIComponent(escape(atob(String(text).trim()))); } catch (_) { return "Base64 tidak valid"; }
+  }
+  function utilityTags(content) {
+    var out = String(content || "");
+    out = out.replace(/\[\[JSON_PRETTY\]\]([\s\S]*?)\[\[\/JSON_PRETTY\]\]/gi, function (_, raw) {
+      try { return "\n```json\n" + JSON.stringify(JSON.parse(raw.trim()), null, 2).slice(0, 12000) + "\n```\n"; }
+      catch (e) { return "\nJSON invalid: " + e.message + "\n"; }
+    });
+    out = out.replace(/\[\[URL_ENCODE:\s*([^\]]+)\]\]/gi, function (_, t) { return "\n`" + encodeURIComponent(t.trim()) + "`\n"; });
+    out = out.replace(/\[\[UUID\]\]/gi, function () {
+      return "\n`" + (crypto.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 3 | 8)).toString(16); })) + "`\n";
+    });
+    out = out.replace(/\[\[TIME\]\]/gi, function () { return "\n🕒 " + new Date().toLocaleString("id-ID") + "\n"; });
+    out = out.replace(/\[\[B64ENC:\s*([^\]]+)\]\]/gi, function (_, t) { return "\n`" + b64Encode(t.trim()) + "`\n"; });
+    out = out.replace(/\[\[B64DEC:\s*([^\]]+)\]\]/gi, function (_, t) { return "\n" + b64Decode(t) + "\n"; });
+    out = out.replace(/\[\[REGEX:\s*([^|\]]+)\|([^\]]*)\]\]/gi, function (_, p, t) {
+      try { var m = String(t).match(new RegExp(p.trim(), "g")); return "\nRegex: " + (m ? m.map(function (x) { return "`" + x + "`"; }).join(", ") : "(tidak match)") + "\n"; }
+      catch (e) { return "\nRegex error: " + e.message + "\n"; }
+    });
+    out = out.replace(/\[\[DIFF:\s*([\s\S]*?)\|\|\|([\s\S]*?)\]\]/gi, function (_, a, b) {
+      var A = String(a).split("\n"), B = String(b).split("\n"), lines = [], n = Math.max(A.length, B.length);
+      for (var i = 0; i < n; i++) { if (A[i] === B[i]) lines.push("  " + (A[i] || "")); else { if (A[i] != null) lines.push("- " + A[i]); if (B[i] != null) lines.push("+ " + B[i]); } }
+      return "\n```diff\n" + lines.join("\n").slice(0, 12000) + "\n```\n";
+    });
+    out = out.replace(/\[\[UNIT:\s*([^\]]+)\]\]/gi, function (_, expr) {
+      var m = String(expr).toLowerCase().match(/([\d.]+)\s*(km|m|mi|ft|kg|lb)\s*(?:to|->)\s*(km|m|mi|ft|kg|lb)/);
+      if (!m) return "\nUnit: format `100 km to mi`\n";
+      var map = { km: 1000, m: 1, mi: 1609.344, ft: .3048, kg: 1, lb: .45359237 }, v = Number(m[1]) * map[m[2]] / map[m[3]];
+      return "\n📏 " + m[1] + " " + m[2] + " = **" + (Math.round(v * 1000) / 1000) + " " + m[3] + "**\n";
+    });
+    out = out.replace(/\[\[COLOR:\s*([^\]]+)\]\]/gi, function (_, c) { var x = c.trim().replace(/^#/, ""); return /^([0-9a-f]{3}|[0-9a-f]{6})$/i.test(x) ? "\n🎨 #" + x + " → rgb(" + parseInt(x.length === 3 ? x[0] + x[0] : x.slice(0, 2), 16) + ", " + parseInt(x.length === 3 ? x[1] + x[1] : x.slice(2, 4), 16) + ", " + parseInt(x.length === 3 ? x[2] + x[2] : x.slice(4, 6), 16) + ")\n" : "\nColor invalid\n"; });
+    out = out.replace(/\[\[QR:\s*([^\]]+)\]\]/gi, function (_, t) { return "\n![QR](https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent(t.trim()) + ")\n"; });
+    return out;
+  }
+
+  function patchUtilityExecution() {
+    patchUtilityPrompt();
+    ensureUtilityCatalog();
+    if (typeof window.runAgentTags !== "function" || window.runAgentTags.__rdUtilV7) return;
+    var prev = window.runAgentTags;
+    window.runAgentTags = async function (content) {
+      var result = await prev.apply(this, arguments);
+      return utilityTags(result);
+    };
+    window.runAgentTags.__rdUtilV7 = true;
+  }
+
+  function ensureUtilityCatalog() {
+    var additions = [
+      { id: "json-pretty", name: "JSON Pretty", type: "local", description: "Validasi dan rapikan JSON tanpa server", usage: "[[JSON_PRETTY]]{\"zraf\":true}[[/JSON_PRETTY]]" },
+      { id: "url-encode", name: "URL Encode", type: "local", description: "Encode teks untuk URL dengan aman", usage: "[[URL_ENCODE: teks]]" },
+      { id: "uuid-time", name: "UUID + Time", type: "local", description: "Buat UUID atau timestamp lokal", usage: "[[UUID]] atau [[TIME]]" },
+      { id: "base64", name: "Base64 Lab", type: "local", description: "Encode/decode Base64 Unicode", usage: "[[B64ENC: teks]] / [[B64DEC: teks]]" },
+      { id: "regex", name: "Regex Finder", type: "local", description: "Cari pola regex pada teks", usage: "[[REGEX: pola|teks]]" },
+      { id: "diff", name: "Diff Detective", type: "local", description: "Bandingkan dua teks atau konfigurasi", usage: "[[DIFF: lama|||baru]]" },
+      { id: "unit", name: "Unit Converter", type: "local", description: "Konversi jarak dan massa umum", usage: "[[UNIT: 100 km to mi]]" },
+      { id: "color", name: "Color Inspector", type: "local", description: "Ubah hex color menjadi RGB", usage: "[[COLOR: #76B900]]" },
+      { id: "qr", name: "QR Maker", type: "remote", description: "Buat QR dari teks atau URL", usage: "[[QR: https://example.com]]" }
+    ];
+    try {
+      var raw = localStorage.getItem("rd_tools");
+      var list = raw ? JSON.parse(raw) : [];
+      var ids = {};
+      list.forEach(function (x) { if (x && x.id) ids[x.id] = true; });
+      additions.forEach(function (x) { if (!ids[x.id]) list.push(x); });
+      localStorage.setItem("rd_tools", JSON.stringify(list));
+      if (typeof window.renderInstalledTools === "function") window.renderInstalledTools();
+    } catch (_) {}
+  }
+
+  setTimeout(patchUtilityExecution, 80);
+  setTimeout(patchUtilityExecution, 500);
+  setTimeout(patchUtilityExecution, 1600);
 })();

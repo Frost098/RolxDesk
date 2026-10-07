@@ -1,211 +1,172 @@
-// GET  = list hosted models
-// POST = chat via OPENROUTER_API_KEY and/or NVIDIA_API_KEY
+// RD Hosted — live free catalog, normalized responses, bounded fallback
+const FALLBACK_FREE = [
+  { id: "openrouter/free", name: "RD Free Auto" },
+  { id: "nvidia/nemotron-3.5-lightning:free", name: "Nemotron 3.5 Lightning (free)" },
+  { id: "cohere/north-mini-code:free", name: "North Mini Code (free)" },
+  { id: "google/gemma-3-27b-it:free", name: "Gemma 3 27B (free)" }
+];
+
+let catalogCache = { at: 0, models: [] };
+
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  cors(res);
   if (req.method === "OPTIONS") return res.status(204).end();
 
   const orKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "";
   const nvKey = process.env.NVIDIA_API_KEY || process.env.NVIDIA_KEY || "";
 
-  // Hanya model free yang terbukti content-nya keluar (okt 2026)
-  const orModels = [
-    { id: "openrouter/free", name: "RD Free Auto" },
-    { id: "cohere/north-mini-code:free", name: "RD North Mini Code" },
-    { id: "google/gemma-4-26b-a4b-it:free", name: "RD Gemma 4 26B" },
-    { id: "inclusionai/ling-3.0-flash-sante:free", name: "RD Ling 3.0 Flash" },
-    { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "RD Nemotron Super" },
-    { id: "nvidia/nemotron-3.5-lightning:free", name: "RD Nemotron Lightning" },
-    { id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", name: "RD Nemotron Nano Omni" }
-  ];
-
-  const nvModels = [
-    { id: "nv:meta/llama-3.1-8b-instruct", name: "NVIDIA Llama 3.1 8B" },
-    { id: "nv:meta/llama-3.1-70b-instruct", name: "NVIDIA Llama 3.1 70B" },
-    { id: "nv:nvidia/llama-3.3-nemotron-super-49b-v1", name: "NVIDIA Nemotron Super 49B" },
-    { id: "nv:google/gemma-2-9b-it", name: "NVIDIA Gemma 2 9B" },
-    { id: "nv:qwen/qwen2.5-7b-instruct", name: "NVIDIA Qwen2.5 7B" }
-  ];
-
   if (req.method === "GET") {
     const models = [];
-    if (orKey) models.push(...orModels);
-    if (nvKey) models.push(...nvModels);
-    const hosted = !!(orKey || nvKey);
+    if (orKey) models.push(...(await getFreeCatalog(orKey)));
+    if (nvKey) models.push(...nvidiaCatalog());
     return res.status(200).json({
-      hosted,
-      models,
+      hosted: !!(orKey || nvKey),
+      models: uniqueModels(models),
       providers: { openrouter: !!orKey, nvidia: !!nvKey },
-      note: hosted ? "Siap" : "Set OPENROUTER_API_KEY dan/atau NVIDIA_API_KEY di Vercel"
+      generated_at: new Date().toISOString(),
+      note: orKey || nvKey ? "Katalog free aktif" : "Set OPENROUTER_API_KEY dan/atau NVIDIA_API_KEY di Vercel"
     });
   }
 
   if (req.method !== "POST") return res.status(405).json({ error: "GET/POST only" });
-
-  let body = {};
-  try {
-    body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-  } catch (_) {}
-
-  let model = String(body.model || "openrouter/free").slice(0, 160);
-  const messages = Array.isArray(body.messages) ? body.messages : [];
+  const body = parseBody(req.body);
+  let requested = String(body.model || "openrouter/free").slice(0, 160);
+  const messages = Array.isArray(body.messages) ? body.messages.slice(-24) : [];
   if (!messages.length) return res.status(400).json({ error: "messages required" });
 
-  const temperature = body.temperature ?? 0.7;
-  const max_tokens = Math.min(Math.max(parseInt(body.max_tokens || 1024, 10) || 1024, 64), 4096);
+  const temperature = clampNumber(body.temperature, 0.7, 0, 2);
+  const max_tokens = clampInt(body.max_tokens, 1024, 64, 3072);
+  const nvidia = requested.startsWith("nv:");
 
-  // Map dead free slugs → working ones
-  const remap = {
-    "qwen/qwen3.8-27b:free": "openrouter/free",
-    "google/gemma-4-31b-it:free": "google/gemma-4-26b-a4b-it:free",
-    "thinkingmachines/inkling:free": "inclusionai/ling-3.0-flash-sante:free",
-    "thinkingmachines/inkling-small:free": "inclusionai/ling-3.0-flash-sante:free",
-    "nvidia/nemotron-3.5-lightning:free": "nvidia/nemotron-3.5-lightning:free"
-  };
-  if (remap[model]) model = remap[model];
+  if (nvidia) {
+    if (!nvKey) return res.status(503).json({ error: "NVIDIA Hosted offline — NVIDIA_API_KEY belum di-set di Vercel" });
+    const model = requested.slice(3);
+    const data = await upstreamJson(
+      "https://integrate.api.nvidia.com/v1/chat/completions",
+      { Authorization: "Bearer " + nvKey, "Content-Type": "application/json" },
+      completionBody(model, messages, temperature, max_tokens)
+    );
+    return res.status(data.status).json(data.status >= 200 && data.status < 300 ? normalizeCompletion(data.body) : providerError(data.body, "nvidia", data.status));
+  }
 
-  // NVIDIA direct (server key)
-  if (model.startsWith("nv:") || /^nvidia\//i.test(model) && nvKey && !model.includes(":free")) {
-    if (!nvKey) {
-      return res.status(503).json({ error: "NVIDIA_API_KEY belum di-set di Vercel" });
-    }
-    const nvidiaModel = model.startsWith("nv:") ? model.slice(3) : model;
-    try {
-      const upstream = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + nvKey,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: nvidiaModel,
-          messages: messages.slice(-24),
-          temperature,
-          max_tokens,
-          stream: false
-        })
-      });
-      const data = await upstream.json().catch(() => ({}));
-      if (!upstream.ok) {
-        const msg =
-          (data.error && (data.error.message || data.error)) ||
-          data.message ||
-          "HTTP " + upstream.status;
-        return res.status(upstream.status).json({ error: String(msg), provider: "nvidia" });
-      }
-      return res.status(200).json(normalizeCompletion(data));
-    } catch (e) {
-      return res.status(500).json({ error: e.message || "nvidia error", provider: "nvidia" });
+  if (!orKey) return res.status(503).json({ error: "Hosted OpenRouter offline — OPENROUTER_API_KEY belum di-set di Vercel" });
+  const catalog = await getFreeCatalog(orKey);
+  const allowed = new Set(catalog.map((m) => m.id));
+  if (requested !== "openrouter/free" && !allowed.has(requested)) {
+    return res.status(400).json({ error: "Model tidak tersedia di katalog free saat ini", model: requested, models: catalog });
+  }
+
+  const first = await openrouter(orKey, requested, messages, temperature, max_tokens);
+  if (first.status >= 200 && first.status < 300) return res.status(200).json(normalizeCompletion(first.body));
+
+  // Hanya fallback untuk model upstream yang mati/limit; jangan menyamarkan error auth atau input.
+  const msg = errorMessage(first.body, first.status);
+  if (requested !== "openrouter/free" && /unavailable|not found|provider|timeout|rate.?limit|temporar/i.test(msg)) {
+    const fallback = await openrouter(orKey, "openrouter/free", messages, temperature, max_tokens);
+    if (fallback.status >= 200 && fallback.status < 300) {
+      const out = normalizeCompletion(fallback.body);
+      out.rd_fallback = { requested, used: "openrouter/free" };
+      return res.status(200).json(out);
     }
   }
-
-  if (!orKey) {
-    return res.status(503).json({
-      error: "Hosted OpenRouter offline — set OPENROUTER_API_KEY di Vercel"
-    });
-  }
-
-  const allow = [
-    "openrouter/free",
-    "nvidia/",
-    "google/gemma",
-    "deepseek/",
-    "meta-llama/",
-    "qwen/",
-    "mistralai/",
-    "inclusionai/",
-    "nex-agi/",
-    "poolside/",
-    "cohere/",
-    "thinkingmachines/",
-    ":free"
-  ];
-  const ok = allow.some((a) => model.includes(a) || model.endsWith(":free"));
-  if (!ok) {
-    return res.status(400).json({ error: "Model tidak di allowlist hosted: " + model });
-  }
-
-  try {
-    const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + orKey,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://rolxdesk.vercel.app",
-        "X-Title": "RolxDesk Hosted"
-      },
-      body: JSON.stringify({
-        model,
-        messages: messages.slice(-24),
-        temperature,
-        max_tokens,
-        stream: false
-      })
-    });
-    const data = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) {
-      const msg =
-        (data.error && (data.error.message || data.error)) ||
-        data.message ||
-        "HTTP " + upstream.status;
-      // Auto-fallback ke openrouter/free sekali
-      if (model !== "openrouter/free" && /unavailable|provider returned|not available/i.test(String(msg))) {
-        try {
-          const fb = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: "Bearer " + orKey,
-              "Content-Type": "application/json",
-              "HTTP-Referer": "https://rolxdesk.vercel.app",
-              "X-Title": "RolxDesk Hosted"
-            },
-            body: JSON.stringify({
-              model: "openrouter/free",
-              messages: messages.slice(-24),
-              temperature,
-              max_tokens,
-              stream: false
-            })
-          });
-          const fd = await fb.json().catch(() => ({}));
-          if (fb.ok) return res.status(200).json(normalizeCompletion(fd));
-        } catch (_) {}
-      }
-      return res.status(upstream.status).json({ error: String(msg), hosted: true, model });
-    }
-    return res.status(200).json(normalizeCompletion(data));
-  } catch (e) {
-    return res.status(500).json({ error: e.message || "hosted-chat error" });
-  }
+  return res.status(first.status || 502).json({ error: msg, hosted: true, model: requested });
 }
 
-/** Pastikan message.content tidak null (beberapa model free cuma isi reasoning) */
-function normalizeCompletion(data) {
+function cors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+}
+function parseBody(body) {
+  if (!body) return {};
+  if (typeof body === "string") { try { return JSON.parse(body); } catch (_) { return {}; } }
+  return body;
+}
+function clampNumber(v, fallback, min, max) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+}
+function clampInt(v, fallback, min, max) {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+}
+function completionBody(model, messages, temperature, max_tokens) {
+  return {
+    model,
+    messages,
+    temperature,
+    max_tokens,
+    stream: false,
+    // Free reasoning models otherwise spend the visible response budget thinking.
+    reasoning: { exclude: true }
+  };
+}
+async function upstreamJson(url, headers, body) {
   try {
-    if (!data || !Array.isArray(data.choices)) return data;
-    data.choices = data.choices.map(function (ch) {
-      if (!ch || !ch.message) return ch;
-      var msg = ch.message;
-      var content = msg.content;
-      if (content == null || (typeof content === "string" && !content.trim())) {
-        var r = msg.reasoning || msg.reasoning_content || "";
-        if (typeof r === "string" && r.trim()) {
-          // Ambil kalimat terakhir yang mirip jawaban, atau potong reasoning
-          var lines = r.split(/\n+/).map(function (s) {
-            return s.trim();
-          }).filter(Boolean);
-          var last = lines[lines.length - 1] || r.slice(0, 500);
-          // Hindari menampilkan seluruh chain-of-thought panjang
-          if (last.length > 600) last = last.slice(0, 600) + "…";
-          msg.content = last;
-        } else {
-          msg.content = "(model tidak mengembalikan teks — coba model Hosted lain / Free Auto)";
-        }
-      }
-      ch.message = msg;
-      return ch;
-    });
+    const r = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+    return { status: r.status, body: await r.json().catch(() => ({})) };
+  } catch (e) {
+    return { status: 502, body: { error: { message: e.message || "upstream fetch failed" } } };
+  }
+}
+async function openrouter(key, model, messages, temperature, max_tokens) {
+  return upstreamJson(
+    "https://openrouter.ai/api/v1/chat/completions",
+    { Authorization: "Bearer " + key, "Content-Type": "application/json", "HTTP-Referer": "https://rolxdesk.vercel.app", "X-Title": "RolxDesk Hosted" },
+    completionBody(model, messages, temperature, max_tokens)
+  );
+}
+async function getFreeCatalog(key) {
+  if (catalogCache.models.length && Date.now() - catalogCache.at < 5 * 60 * 1000) return catalogCache.models;
+  try {
+    const r = await fetch("https://openrouter.ai/api/v1/models", { headers: { Authorization: "Bearer " + key, Accept: "application/json" } });
+    const j = await r.json().catch(() => ({}));
+    const list = Array.isArray(j.data) ? j.data : [];
+    const free = list.filter((m) => {
+      const p = m && m.pricing || {};
+      return m && m.id && (m.id === "openrouter/free" || (String(p.prompt) === "0" && String(p.completion) === "0"));
+    }).map((m) => ({ id: m.id, name: (m.name || m.id) + " (free)", context_length: m.context_length || null }));
+    const models = uniqueModels([{ id: "openrouter/free", name: "RD Free Auto" }, ...free]).slice(0, 40);
+    if (models.length) { catalogCache = { at: Date.now(), models }; return models; }
   } catch (_) {}
-  return data;
+  return FALLBACK_FREE;
+}
+function nvidiaCatalog() {
+  return [
+    { id: "nv:nvidia/nemotron-3.5-lightning-30b-a3b", name: "NVIDIA Nemotron 3.5 Lightning" },
+    { id: "nv:nvidia/nemotron-3-nano-30b-a3b", name: "NVIDIA Nemotron Nano" }
+  ];
+}
+function uniqueModels(list) {
+  const seen = new Set();
+  return (list || []).filter((m) => m && m.id && !seen.has(m.id) && seen.add(m.id));
+}
+function errorMessage(body, status) {
+  return String((body && body.error && (body.error.message || body.error)) || (body && body.message) || "HTTP " + status);
+}
+function providerError(body, provider, status) {
+  return { error: errorMessage(body, status), provider, status };
+}
+function normalizeCompletion(data) {
+  const out = data && typeof data === "object" ? data : {};
+  if (!Array.isArray(out.choices)) return out;
+  out.choices = out.choices.map((choice) => {
+    if (!choice || !choice.message) return choice;
+    const msg = choice.message;
+    let content = toText(msg.content || msg.text || "");
+    const reasoning = toText(msg.reasoning || msg.reasoning_content || "");
+    // Never expose a long chain of thought as if it were the final answer.
+    if (!content.trim() && reasoning.trim()) content = "Model selesai berpikir, tetapi tidak mengirim jawaban teks. Coba Free Auto atau model free lain.";
+    if (!content.trim()) content = "Model tidak mengembalikan teks. Coba model free lain.";
+    choice.message = { ...msg, content, reasoning: reasoning || undefined };
+    return choice;
+  });
+  return out;
+}
+function toText(value) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map((x) => typeof x === "string" ? x : x && x.text ? x.text : "").join("\n");
+  if (value && typeof value === "object") return String(value.text || value.content || "");
+  return value == null ? "" : String(value);
 }

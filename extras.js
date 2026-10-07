@@ -358,10 +358,14 @@
   }
 
   window.playYoutube = function (input) {
-    playYoutubeSmart(input).then(function (msg) {
+    return playYoutubeSmart(input).then(function (msg) {
       if (typeof showToast === "function" && msg) showToast(String(msg).split("\n")[0], "success");
+      return msg;
+    }).catch(function (err) {
+      var msg = "YouTube gagal: " + (err && err.message ? err.message : err);
+      if (typeof showToast === "function") showToast(msg, "error");
+      return msg;
     });
-    return true;
   };
 
   function embedSpotifyIframe(trackId) {

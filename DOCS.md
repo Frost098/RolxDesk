@@ -234,3 +234,13 @@ Prioritas tetap: tools jalan, UI tidak nutup header, error jujur.
 ---
 
 *Open source — issue/PR welcome.*
+
+## 18. Big update v7 — Hosted, tools, dan media
+
+- RD Hosted sekarang membaca katalog model OpenRouter secara live dan hanya menampilkan model dengan harga prompt/completion nol, plus `openrouter/free`.
+- Model yang sudah mati atau tidak ada di katalog ditolak dengan error yang jelas; fallback hanya dipakai untuk kegagalan upstream sementara.
+- Respons OpenAI-compatible dengan `content` array, `message.content` kosong, atau field reasoning kini dinormalisasi agar tidak tampil sebagai bubble kosong.
+- Reasoning yang tidak diperlukan dikecualikan dari request Hosted untuk mengurangi delay dan mencegah reasoning memenuhi budget jawaban.
+- Tool lokal baru: `JSON_PRETTY`, `URL_ENCODE`, `UUID`, `TIME`, `B64ENC`, `B64DEC`, `REGEX`, `DIFF`, `UNIT`, `COLOR`, dan `QR`.
+- Media tool harus mengembalikan status yang jujur: panel YouTube siap diputar, gagal dicari, atau error; tidak mengklaim audio/video sedang diputar jika belum ada hasil.
+- Rencana kolaborasi RD–cisypi dicatat sebagai rencana tertunda di `NOTES.md` dan belum diaktifkan.
