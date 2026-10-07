@@ -57,7 +57,22 @@ export default async function handler(req, res) {
   }
 
   const first = await openrouter(orKey, requested, messages, temperature, max_tokens);
-  if (first.status >= 200 && first.status < 300) return res.status(200).json(normalizeCompletion(first.body));
+  if (first.status >= 200 && first.status < 300) {
+    const normalized = normalizeCompletion(first.body);
+    if (hasFinalText(normalized) || requested !== "openrouter/free") return res.status(200).json(normalized);
+    const alternate = pickAlternateFree(catalog, requested);
+    if (alternate) {
+      const alt = await openrouter(orKey, alternate, messages, temperature, max_tokens);
+      if (alt.status >= 200 && alt.status < 300) {
+        const altNormalized = normalizeCompletion(alt.body);
+        if (hasFinalText(altNormalized)) {
+          altNormalized.rd_fallback = { requested, used: alternate, reason: "empty final content" };
+          return res.status(200).json(altNormalized);
+        }
+      }
+    }
+    return res.status(200).json(normalized);
+  }
 
   // Hanya fallback untuk model upstream yang mati/limit; jangan menyamarkan error auth atau input.
   const msg = errorMessage(first.body, first.status);
@@ -141,6 +156,13 @@ function nvidiaCatalog() {
 function uniqueModels(list) {
   const seen = new Set();
   return (list || []).filter((m) => m && m.id && !seen.has(m.id) && seen.add(m.id));
+}
+function pickAlternateFree(catalog, requested) {
+  return catalog.find((m) => m.id !== requested && m.id !== "openrouter/free" && !/safety|guard|moderation/i.test(m.id))?.id || null;
+}
+function hasFinalText(data) {
+  const c = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  return typeof c === "string" && c.trim() && !/^Model (tidak|selesai)/i.test(c.trim());
 }
 function errorMessage(body, status) {
   return String((body && body.error && (body.error.message || body.error)) || (body && body.message) || "HTTP " + status);
