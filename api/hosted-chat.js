@@ -162,7 +162,8 @@ function pickAlternateFree(catalog, requested) {
 }
 function hasFinalText(data) {
   const c = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-  return typeof c === "string" && c.trim() && !/^Model (tidak|selesai)/i.test(c.trim());
+  if (typeof c !== "string" || !c.trim() || /^Model (tidak|selesai)/i.test(c.trim())) return false;
+  return !/(thinking process|chain of thought|reasoning process|analisis internal|let me think|\b1\.\s+\*\*analy[sz]e user)/i.test(c);
 }
 function errorMessage(body, status) {
   return String((body && body.error && (body.error.message || body.error)) || (body && body.message) || "HTTP " + status);
