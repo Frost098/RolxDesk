@@ -1,10 +1,10 @@
 # Catatan Proyek
 
-## Kolaborasi RD–CisyPi
+## RD × CisyPi
 
-RD dan CisyPi sekarang sudah **terhubung secara publik melalui Rafli-links**: kartu RolxDesk mengarah ke RD, sementara CisyPi tetap berada di alur protected miliknya sendiri.
+Kolaborasi sekarang terlihat langsung di UI RD melalui hero card, badge header, dan link publik ke CisyPi. Rafli-links juga memuat kartu RolxDesk.
 
-Integrasi internal yang membutuhkan secret, API resmi, atau perubahan pada server CisyPi belum dibuat diam-diam. Jalur yang siap dipakai sekarang adalah Custom MCP RD: masukkan endpoint MCP CisyPi bila endpoint resminya tersedia, lalu simpan key hanya di browser.
+RD tidak menyalin atau mengubah auth internal CisyPi. Integrasi tool lintas-proyek memakai Custom MCP jika endpoint resmi CisyPi dan key yang sesuai tersedia.
 
 ## Arah produk
 

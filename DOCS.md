@@ -254,3 +254,7 @@ Prioritas tetap: tools jalan, UI tidak nutup header, error jujur.
 - **Custom MCP:** Settings → Custom MCP menerima URL HTTPS, API key, headers JSON, import config JSON, dan menjalankan `initialize`, `tools/list`, serta `tools/call` lewat tag `[[MCP:nama:aksi]]`.
 - **Patch badge:** Settings menampilkan RD v8 / next-gen wrapped AI.
 - **Rafli-links:** kartu RolxDesk sudah ada dan deskripsinya diperbarui menjadi positioning open-source next-gen. CisyPi tetap protected; RD tidak mengubah auth/proteksi CisyPi.
+
+## 20. Visual collab v9 — RD × CisyPi
+
+Versi ini menambahkan perubahan yang langsung terlihat di layar utama: hero card baru, identitas gradient ungu-hijau, badge `RD × CISYPI` di header, sub-brand di sidebar, chip fitur, dan link badge yang membuka CisyPi. Ini adalah cross-brand collaboration layer; auth/proteksi CisyPi tetap dikelola oleh project CisyPi.
