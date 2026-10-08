@@ -9,3 +9,7 @@ RD tidak menyalin atau mengubah auth internal CisyPi. Integrasi tool lintas-proy
 ## Arah produk
 
 RolxDesk diarahkan menjadi open-source wrapped AI desk yang terasa hidup, santai, ringkas secara default, transparan saat memakai tools, dan bisa diperluas lewat provider OpenAI-compatible serta Custom MCP.
+
+## CisyPi access boundary
+
+URL `cisypistream-mktfzcae.manus.space` bisa dibuka publik, tetapi sesi ini belum memiliki Webdev project binding/resource URI atau source checkout CisyPi. Karena itu perubahan langsung pada CisyPi belum dipalsukan. Video Picker dan action-first tool layer sudah disiapkan di RD; untuk mengubah source CisyPi secara langsung diperlukan project/resource CisyPi yang ter-attach ke sesi.

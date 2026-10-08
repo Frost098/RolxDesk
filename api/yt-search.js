@@ -6,12 +6,13 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
-  let q = "", channelId = "", wantChannel = false;
+  let q = "", channelId = "", wantChannel = false, wantPicker = false;
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     q = String(body.q || body.query || body.name || "").trim();
     channelId = String(body.channelId || body.id || "").trim();
     wantChannel = !!(channelId || body.channel === true || body.action === "channel");
+    wantPicker = !!(body.picker === true || body.action === "picker");
   } catch (_) {}
 
   const bases = [
@@ -243,6 +244,22 @@ export default async function handler(req, res) {
   const best = candidates[0];
   if (!best) {
     return res.status(404).json({ error: "Video tidak ditemukan", query: searchQ, tried });
+  }
+  if (wantPicker) {
+    return res.status(200).json({
+      videos: candidates.slice(0, 8).map((v) => ({
+        id: v.id,
+        title: v.title,
+        uploader: v.uploader,
+        url: v.url,
+        thumbnail: "https://i.ytimg.com/vi/" + v.id + "/mqdefault.jpg",
+        source: v.source,
+        score: v.score
+      })),
+      query: searchQ,
+      raw,
+      tried
+    });
   }
   return res.status(200).json({
     id: best.id,

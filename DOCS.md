@@ -258,3 +258,10 @@ Prioritas tetap: tools jalan, UI tidak nutup header, error jujur.
 ## 20. Visual collab v9 — RD × CisyPi
 
 Versi ini menambahkan perubahan yang langsung terlihat di layar utama: hero card baru, identitas gradient ungu-hijau, badge `RD × CISYPI` di header, sub-brand di sidebar, chip fitur, dan link badge yang membuka CisyPi. Ini adalah cross-brand collaboration layer; auth/proteksi CisyPi tetap dikelola oleh project CisyPi.
+
+## 21. Video Picker v10 — action-first media
+
+- `POST /api/yt-search` menerima `picker:true` dan mengembalikan sampai 8 kandidat video berbasis YouTube ID + thumbnail, bukan direct stream URL yang mudah kedaluwarsa.
+- Tag `[[YOUTUBE: query]]` sekarang membuka mini picker; user memilih kandidat dulu, lalu RD menampilkan thumbnail dan embed player.
+- Status tidak lagi mengklaim video sudah diputar sebelum kandidat dipilih dan player tampil.
+- Loader asset dinaikkan ke v81 untuk menghindari cache extras lama.

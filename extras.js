@@ -52,9 +52,10 @@
 
   var TOOL_LAW =
     "\n\n[ROLXDESK TOOLS]\n" +
-    "VIDEO/YouTube/channel/yt → [[YOUTUBE: query]] JANGAN [[PLAY]].\n" +
+    "VIDEO/YouTube/channel/yt → [[YOUTUBE: query]] untuk membuka picker video. JANGAN mengaku sudah memutar sebelum user memilih atau player benar-benar tampil.\n" +
     "Video terbaru channel X → [[YOUTUBE: latest:X]].\n" +
     "LAGU/Spotify → [[PLAY: judul]].\n" +
+    "MANUS MODE: kalau tugas butuh aksi, gunakan sandbox, browse, file, connector, atau MCP yang memang tersedia; jangan mengganti eksekusi dengan jawaban seolah-olah sudah selesai. Laporkan hasil tool dan error secara jujur.\n" +
     "Play di web embed RolxDesk saja.\n";
 
   function patchContinuity() {
@@ -157,7 +158,12 @@
         "#rd-yt.rd-yt-playing #rd-yt-thumb{display:none!important;}",
         "#rd-yt-actions{display:flex;gap:8px;padding:8px;background:#12121a;}",
         "#rd-yt-actions a,#rd-yt-actions button{flex:1;text-align:center;font:12px system-ui;padding:8px;border-radius:8px;",
-        "background:#2a2a36;color:#ddd;border:0;text-decoration:none;cursor:pointer;}"
+        "background:#2a2a36;color:#ddd;border:0;text-decoration:none;cursor:pointer;}",
+        "#rd-yt-picker{display:none;max-height:260px;overflow-y:auto;padding:8px;background:#0f0f15;}",
+        "#rd-yt-picker.rd-yt-picker-show{display:block;}",
+        ".rd-yt-choice{display:flex;gap:8px;width:100%;padding:7px;border:0;border-bottom:1px solid #292936;background:transparent;color:#eee;text-align:left;cursor:pointer;}",
+        ".rd-yt-choice:hover{background:#20202b;}.rd-yt-choice img{width:92px;height:52px;object-fit:cover;border-radius:6px;background:#000;flex-shrink:0;}",
+        ".rd-yt-choice span{display:block;min-width:0;font:12px/1.35 system-ui;}.rd-yt-choice b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.rd-yt-choice small{display:block;color:#999;margin-top:3px;}"
       ].join("");
       document.head.appendChild(st);
     }
@@ -168,6 +174,7 @@
       panel.innerHTML =
         '<div class="rd-yt-bar"><span class="rd-yt-title" id="rd-yt-title">YouTube</span>' +
         '<button type="button" class="rd-yt-btn" id="rd-yt-close">×</button></div>' +
+        '<div id="rd-yt-picker"><div style="padding:8px;color:#999;font:12px system-ui">Pilih video:</div></div>' +
         '<div id="rd-yt-thumb"><img id="rd-yt-thumb-img" alt=""/><div class="rd-yt-play">▶</div></div>' +
         '<iframe id="rd-yt-frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen playsinline referrerpolicy="origin"></iframe>' +
         '<div id="rd-yt-actions">' +
@@ -206,6 +213,8 @@
     id = String(id || "").trim();
     if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return "ID YouTube tidak valid: " + id;
     var ui = ensureYtPanel();
+    var picker = document.getElementById("rd-yt-picker");
+    if (picker) picker.classList.remove("rd-yt-picker-show");
     ui.panel.setAttribute("data-vid", id);
     if (ui.title) ui.title.textContent = String(title || id).slice(0, 56);
     var img = document.getElementById("rd-yt-thumb-img");
@@ -237,6 +246,30 @@
       } catch (e2) {}
     }
     return "▶️ " + (title || id) + "\nhttps://youtu.be/" + id + "\n(Ketuk ▶ Putar di sini)";
+  }
+
+  function showYtPicker(query, videos) {
+    var ui = ensureYtPanel();
+    var picker = document.getElementById("rd-yt-picker");
+    if (!picker || !Array.isArray(videos) || !videos.length) return "Tidak ada pilihan video untuk: " + query;
+    ui.panel.classList.remove("rd-yt-playing");
+    if (ui.frame) ui.frame.src = "about:blank";
+    if (ui.title) ui.title.textContent = "Pilih video · " + String(query).slice(0, 38);
+    picker.innerHTML = '<div style="padding:8px;color:#999;font:12px system-ui">Pilih video untuk diputar:</div>' + videos.map(function (v, i) {
+      var title = String(v.title || "Video " + (i + 1)).replace(/[<>]/g, "");
+      var uploader = String(v.uploader || "YouTube").replace(/[<>]/g, "");
+      return '<button type="button" class="rd-yt-choice" data-rd-yt-id="' + String(v.id) + '" data-rd-yt-title="' + title.replace(/"/g, "&quot;") + '"><img src="' + (v.thumbnail || "https://i.ytimg.com/vi/" + v.id + "/mqdefault.jpg") + '" alt=""><span><b>' + title + '</b><small>' + uploader + '</small></span></button>';
+    }).join("");
+    picker.classList.add("rd-yt-picker-show");
+    picker.querySelectorAll("[data-rd-yt-id]").forEach(function (btn) {
+      btn.onclick = function () { embedYt(btn.getAttribute("data-rd-yt-id"), btn.getAttribute("data-rd-yt-title")); };
+    });
+    ui.panel.classList.add("rd-yt-show");
+    ui.panel.style.setProperty("display", "block", "important");
+    ui.panel.style.setProperty("visibility", "visible", "important");
+    ui.panel.style.setProperty("opacity", "1", "important");
+    ui.panel.style.setProperty("z-index", "2147483000", "important");
+    return "Video ditemukan — pilih salah satu dari " + videos.length + " hasil.";
   }
 
   function loadYtubersLocal() {
@@ -342,7 +375,7 @@
         fetch("/api/yt-search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ q: q })
+          body: JSON.stringify({ q: q, picker: true, action: "picker" })
         }),
         18000,
         "yt"
@@ -350,6 +383,9 @@
       var j = await r.json().catch(function () {
         return {};
       });
+      if (r.ok && Array.isArray(j.videos) && j.videos.length) {
+        return showYtPicker(q, j.videos);
+      }
       if (r.ok && j.id && /^[A-Za-z0-9_-]{11}$/.test(j.id)) {
         return embedYt(j.id, (j.title || j.id) + (j.uploader ? " · " + j.uploader : ""));
       }

@@ -461,7 +461,8 @@
       { id: "diff", name: "Diff Detective", type: "local", description: "Bandingkan dua teks atau konfigurasi", usage: "[[DIFF: lama|||baru]]" },
       { id: "unit", name: "Unit Converter", type: "local", description: "Konversi jarak dan massa umum", usage: "[[UNIT: 100 km to mi]]" },
       { id: "color", name: "Color Inspector", type: "local", description: "Ubah hex color menjadi RGB", usage: "[[COLOR: #76B900]]" },
-      { id: "qr", name: "QR Maker", type: "remote", description: "Buat QR dari teks atau URL", usage: "[[QR: https://example.com]]" }
+      { id: "qr", name: "QR Maker", type: "remote", description: "Buat QR dari teks atau URL", usage: "[[QR: https://example.com]]" },
+      { id: "video-picker", name: "Video Picker", type: "remote", description: "Cari beberapa video YouTube lalu pilih yang benar sebelum diputar", usage: "Minta: putar video [topik]" }
     ];
     try {
       var raw = localStorage.getItem("rd_tools");

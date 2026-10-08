@@ -111,7 +111,7 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
     status("Render…");
     // Buang SEMUA extras lama (termasuk pin CDN jsDelivr)
     html = html.replace(/<script[^>]*(extras(?:-ui|-fix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi, "");
-    html = html.replace(/<\/body>/i, '<script src="./extras.js?v=80"><\/script><script src="./extras-ui.js?v=80"><\/script><script src="./extras-fix.js?v=80"><\/script></body>');
+    html = html.replace(/<\/body>/i, '<script src="./extras.js?v=81"><\/script><script src="./extras-ui.js?v=81"><\/script><script src="./extras-fix.js?v=81"><\/script></body>');
     var elapsed = Date.now() - t0;
     var wait = Math.max(0, Math.min(MAX_MS, 900) - elapsed);
     await new Promise(function (res) { setTimeout(res, wait); });
