@@ -18,8 +18,7 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
 .rd-flash{position:absolute;width:min(280px,70vw);height:min(280px,70vw);border-radius:50%;background:radial-gradient(circle,rgba(124,106,247,.5) 0%,transparent 70%);opacity:0;pointer-events:none;animation:rdFlash .65s ease-out .32s forwards;}
 @keyframes rdFlash{0%{transform:scale(.25);opacity:0}35%{opacity:.9}100%{transform:scale(1.7);opacity:0}}
 .rd-shock{position:absolute;width:130px;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,#a89cff,transparent);opacity:0;animation:rdShock .38s ease-out .45s forwards;}
-@keyframes rdShock{0%{transform:scaleX(.15);opacity:0}45%{opacity:1;transform:scaleX(1.5)}100%{opacity:0;transform:scaleX(2)}
-}
+@keyframes rdShock{0%{transform:scaleX(.15);opacity:0}45%{opacity:1;transform:scaleX(1.5)}100%{opacity:0;transform:scaleX(2)}}
 #rd-boot-status{margin-top:28px;font-size:13px;color:#8b8b98;letter-spacing:.03em;min-height:1.2em;text-align:center;padding:0 16px}
 #rd-boot-bar{margin-top:14px;width:min(200px,50vw);height:3px;border-radius:2px;background:#1c1c24;overflow:hidden}
 #rd-boot-bar>i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#7c6af7,#1a7f64);transition:width .22s ease}
@@ -73,10 +72,10 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
     progress(95); status("Render…");
     html = html.replace(/<script[^>]*(extras(?:-ui|-fix|-hotfix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi, "");
     html = html.replace(/<\/body>/i,
-      '<script src="./extras.js?v=83"><\/script>' +
-      '<script src="./extras-ui.js?v=83"><\/script>' +
-      '<script src="./extras-fix.js?v=83"><\/script>' +
-      '<script src="./extras-hotfix.js?v=83"><\/script></body>');
+      '<script src="./extras.js?v=84"><\/script>' +
+      '<script src="./extras-ui.js?v=84"><\/script>' +
+      '<script src="./extras-fix.js?v=84"><\/script>' +
+      '<script src="./extras-hotfix.js?v=84"><\/script></body>');
     var elapsed = Date.now() - t0;
     var wait = Math.max(0, Math.min(MAX_MS, 900) - elapsed);
     await new Promise(function (res) { setTimeout(res, wait); });
