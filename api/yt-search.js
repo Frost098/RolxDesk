@@ -1,4 +1,4 @@
-// POST /api/yt-search { q } OR { channelId } / { q, channel:true }
+// POST /api/yt-search { q } OR { q, channel:true } OR { channelId }
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -6,270 +6,221 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
-  let q = "", channelId = "", wantChannel = false, wantPicker = false;
+  let body = {};
   try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-    q = String(body.q || body.query || body.name || "").trim();
-    channelId = String(body.channelId || body.id || "").trim();
-    wantChannel = !!(channelId || body.channel === true || body.action === "channel");
-    wantPicker = !!(body.picker === true || body.action === "picker");
+    body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
   } catch (_) {}
 
-  const bases = [
-    "https://api.piped.private.coffee",
-    "https://pipedapi.kavin.rocks",
-    "https://pipedapi.adminforge.de"
-  ];
-  async function fetchJson(url) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 9000);
-    try {
-      const r = await fetch(url, {
-        signal: ctrl.signal,
-        headers: { Accept: "application/json", "User-Agent": "RolxDesk/1.0" }
-      });
-      clearTimeout(t);
-      if (!r.ok) return null;
-      return await r.json();
-    } catch {
-      clearTimeout(t);
-      return null;
-    }
-  }
+  let q = String(body.q || body.query || "").trim();
+  let channelId = String(body.channelId || body.id || "").trim();
+  const wantChannel = !!(channelId || body.channel === true || body.action === "channel");
 
-  if (wantChannel || channelId) {
-    if (!channelId && q) {
-      for (const base of bases) {
-        const data = await fetchJson(base + "/search?q=" + encodeURIComponent(q) + "&filter=channels");
-        const items = Array.isArray(data) ? data : data?.items || [];
-        const ch = items.find((it) => (it.type || "").toLowerCase() === "channel") || items[0];
-        if (ch) {
-          const url = String(ch.url || ch.id || "");
-          const m = url.match(/channel\/(UC[\w-]+)/) || url.match(/(UC[\w-]{20,})/);
-          channelId = m ? m[1] : String(ch.id || "").replace(/^\/channel\//, "");
-          if (channelId) break;
-        }
-      }
-    }
-    if (!channelId) return res.status(404).json({ error: "Channel tidak ketemu", q });
-    let channel = { id: channelId, name: q || channelId };
-    let videos = [];
-    // Piped channel page
-    for (const base of bases) {
-      const data = await fetchJson(base + "/channel/" + encodeURIComponent(channelId));
-      if (!data) continue;
-      channel = {
-        id: channelId,
-        name: data.name || channel.name,
-        thumbnail: data.avatarUrl || data.thumbnail || "",
-        description: String(data.description || "").slice(0, 200)
-      };
-      const related = data.relatedStreams || data.videos || [];
-      const list = Array.isArray(related) ? related : [];
-      videos = list
-        .slice(0, 12)
-        .map((v) => {
-          const url = String(v.url || "");
-          const idm =
-            url.match(/[?&]v=([A-Za-z0-9_-]{11})/) ||
-            url.match(/\/watch\?v=([A-Za-z0-9_-]{11})/) ||
-            url.match(/([A-Za-z0-9_-]{11})$/);
-          const isLive =
-            v.isLive || v.livestream || /live/i.test(String(v.type || "")) || v.duration === -1;
-          return {
-            id: v.videoId || (idm && idm[1]) || "",
-            title: v.title || "Untitled",
-            isLive: !!isLive,
-            uploaded: v.uploadedDate || v.uploaded || "",
-            views: v.views,
-            thumbnail: v.thumbnail || ""
-          };
-        })
-        .filter((v) => v.id && /^[A-Za-z0-9_-]{11}$/.test(v.id));
-      if (videos.length) break;
-    }
-    // Invidious fallback — Piped often returns empty relatedStreams
-    if (!videos.length) {
-      const invBases = [
-        "https://invidious.flokinet.to",
-        "https://inv.nadeko.net",
-        "https://yewtu.be"
-      ];
-      for (const inv of invBases) {
-        const data = await fetchJson(
-          inv + "/api/v1/channels/" + encodeURIComponent(channelId) + "/videos"
-        );
-        if (!data) continue;
-        const list = Array.isArray(data) ? data : data.videos || [];
-        if (!list.length) continue;
-        videos = list
-          .slice(0, 12)
-          .map((v) => {
-            const id = String(v.videoId || v.id || "");
-            const thumbs = v.videoThumbnails || [];
-            const thumb =
-              (thumbs.find((t) => t.quality === "medium") || thumbs[0] || {}).url ||
-              v.thumbnail ||
-              "";
-            return {
-              id,
-              title: v.title || "Untitled",
-              isLive: !!(v.liveNow || v.isLive),
-              uploaded: v.publishedText || String(v.published || ""),
-              views: v.viewCount,
-              thumbnail: thumb.startsWith("http") ? thumb : thumb ? inv + thumb : ""
-            };
-          })
-          .filter((v) => v.id && /^[A-Za-z0-9_-]{11}$/.test(v.id));
-        if (videos.length && list[0]) {
-          channel.name = list[0].author || channel.name;
-          if (!channel.thumbnail && list[0].authorThumbnails) {
-            const at = list[0].authorThumbnails;
-            channel.thumbnail = (at[at.length - 1] || at[0] || {}).url || channel.thumbnail;
-          }
-        }
-        if (videos.length) break;
-      }
-    }
-    // Last resort: search videos by channel name
-    if (!videos.length && (channel.name || q)) {
-      const qq = encodeURIComponent(channel.name || q);
-      for (const base of bases) {
-        const data = await fetchJson(base + "/search?q=" + qq + "&filter=videos");
-        const items = Array.isArray(data) ? data : data?.items || [];
-        videos = items
-          .slice(0, 8)
-          .map((v) => {
-            const url = String(v.url || "");
-            const idm =
-              url.match(/[?&]v=([A-Za-z0-9_-]{11})/) ||
-              url.match(/\/watch\?v=([A-Za-z0-9_-]{11})/);
-            return {
-              id: v.videoId || (idm && idm[1]) || "",
-              title: v.title || "Untitled",
-              isLive: !!(v.isLive || v.livestream),
-              uploaded: v.uploadedDate || "",
-              views: v.views,
-              thumbnail: v.thumbnail || ""
-            };
-          })
-          .filter((v) => v.id);
-        if (videos.length) break;
-      }
-    }
-    return res.status(200).json({ channel, videos, latest: videos[0] || null });
-  }
+  q = q
+    .replace(/^(?:coba\s+)?(?:tolong\s+)?(?:play|putar|tonton)\s+/i, "")
+    .replace(/\b(?:video|youtube|yt)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  if (!q) return res.status(400).json({ error: "q kosong" });
-
-  const raw = q;
-  const wantsLatest = /\b(terbaru|latest|newest|baru)\b/i.test(q);
-  let channelHint = "";
-  const chM =
-    q.match(/(?:terbaru|latest)\s+(?:oleh|dari|by|channel)?\s*([A-Za-z0-9_.\- ]{2,40})/i) ||
-    q.match(/(?:oleh|dari|by|channel)\s+([A-Za-z0-9_.\- ]{2,40})/i) ||
-    q.match(/video\s+terbaru\s+([A-Za-z0-9_.\- ]{2,40})/i);
-  if (chM) channelHint = chM[1].replace(/\b(video|lagu|song|official)\b/gi, "").trim();
-
-  let searchQ = q.replace(/^(putar|play)\s+(video\s+)?/i, "").replace(/\s+/g, " ").trim();
-  if (wantsLatest && channelHint) searchQ = channelHint + " ";
-  else if (wantsLatest) searchQ = searchQ.replace(/\b(terbaru|latest|newest)\b/gi, "").trim();
-  if (/\blagu\b|\bsong\b|official audio/i.test(q) && !/official/i.test(searchQ))
-    searchQ = searchQ + " official audio";
-
-  const tokens = searchQ
-    .toLowerCase()
-    .split(/[^a-z0-9_\u00c0-\u024f]+/i)
-    .filter((t) => t.length > 1 && !/^(the|and|official|video|audio|lyric|lyrics|mv|hq)$/i.test(t));
-  const qq = encodeURIComponent(searchQ.trim() || q);
-  const sources = [
-    { url: bases[0] + "/search?q=" + qq + "&filter=videos", kind: "piped" },
-    { url: bases[1] + "/search?q=" + qq + "&filter=videos", kind: "piped" },
-    { url: "https://invidious.flokinet.to/api/v1/search?q=" + qq + "&type=video", kind: "invidious" }
-  ];
-
-  function validId(id) {
-    return typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id);
-  }
-  function pickId(it) {
-    if (!it || typeof it !== "object") return null;
-    if (validId(it.videoId)) return it.videoId;
-    if (validId(it.id)) return it.id;
-    if (typeof it.url === "string") {
-      const m2 =
-        it.url.match(/[?&]v=([A-Za-z0-9_-]{11})/) || it.url.match(/\/watch\?v=([A-Za-z0-9_-]{11})/);
-      if (m2 && validId(m2[1])) return m2[1];
-    }
-    return null;
-  }
-  function scoreItem(it) {
-    const title = String(it.title || "").toLowerCase();
-    const uploader = String(it.uploaderName || it.author || it.channelName || "").toLowerCase();
-    let score = 0;
-    const ch = (channelHint || "").toLowerCase().replace(/\s+/g, "");
-    if (ch) {
-      const up = uploader.replace(/\s+/g, "");
-      if (up.includes(ch) || ch.includes(up)) score += 50;
-      if (title.replace(/\s+/g, "").includes(ch)) score += 20;
-    }
-    for (const tok of tokens) {
-      if (title.includes(tok)) score += 8;
-      if (uploader.includes(tok)) score += 12;
-    }
-    return score;
-  }
-
-  const tried = [];
-  const candidates = [];
-  for (const src of sources) {
-    tried.push(src.kind);
-    const data = await fetchJson(src.url);
-    if (!data) continue;
-    const items = Array.isArray(data) ? data : data.items || data.results || [];
-    for (const it of items) {
-      const id = pickId(it);
-      if (!id) continue;
-      candidates.push({
-        id,
-        title: it.title || "",
-        uploader: it.uploaderName || it.author || it.channelName || "",
-        url: "https://youtu.be/" + id,
-        score: scoreItem(it),
-        source: src.kind
+  try {
+    if (wantChannel || channelId) {
+      const ch = await resolveChannel(q, channelId);
+      if (!ch || !ch.id) return res.status(404).json({ error: "Channel tidak ketemu", q });
+      const videos = await channelVideos(ch.id, ch.name || q);
+      const latest = videos[0] || null;
+      return res.status(200).json({
+        channel: ch,
+        videos,
+        latest,
+        id: latest && latest.id,
+        title: latest && latest.title,
+        uploader: ch.name
       });
     }
-    if (candidates.length >= 5) break;
-  }
-  candidates.sort((a, b) => b.score - a.score);
-  const best = candidates[0];
-  if (!best) {
-    return res.status(404).json({ error: "Video tidak ditemukan", query: searchQ, tried });
-  }
-  if (wantPicker) {
+
+    if (!q) return res.status(400).json({ error: "q required" });
+
+    const results = await searchVideos(q, 8);
+    if (!results.length) {
+      return res.status(404).json({ error: "Video tidak ditemukan", query: q, tried: ["innertube"] });
+    }
+    const best = results[0];
     return res.status(200).json({
-      videos: candidates.slice(0, 8).map((v) => ({
-        id: v.id,
-        title: v.title,
-        uploader: v.uploader,
-        url: v.url,
-        thumbnail: "https://i.ytimg.com/vi/" + v.id + "/mqdefault.jpg",
-        source: v.source,
-        score: v.score
-      })),
-      query: searchQ,
-      raw,
-      tried
+      id: best.id,
+      title: best.title,
+      uploader: best.uploader,
+      url: "https://youtu.be/" + best.id,
+      results,
+      source: best.source || "innertube",
+      query: q
     });
+  } catch (e) {
+    return res.status(500).json({ error: e.message || "yt-search error" });
   }
-  return res.status(200).json({
-    id: best.id,
-    title: best.title,
-    uploader: best.uploader,
-    url: best.url,
-    source: best.source,
-    score: best.score,
-    query: searchQ,
-    raw,
-    tried
+}
+
+const INNERTUBE_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
+const INNERTUBE_CTX = {
+  client: { clientName: "WEB", clientVersion: "2.20240101.00.00", hl: "en", gl: "US" }
+};
+
+async function innertube(endpoint, payload) {
+  const url =
+    "https://www.youtube.com/youtubei/v1/" + endpoint + "?key=" + INNERTUBE_KEY + "&prettyPrint=false";
+  const r = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    },
+    body: JSON.stringify({ context: INNERTUBE_CTX, ...payload })
   });
+  if (!r.ok) throw new Error("innertube HTTP " + r.status);
+  return r.json();
+}
+
+function walkRuns(runs) {
+  if (!Array.isArray(runs)) return "";
+  return runs.map((r) => r.text || "").join("");
+}
+
+function extractVideoFromRenderer(vr) {
+  if (!vr) return null;
+  const id = vr.videoId;
+  if (!id || !/^[A-Za-z0-9_-]{11}$/.test(id)) return null;
+  const title = walkRuns(vr.title && vr.title.runs) || (vr.title && vr.title.simpleText) || id;
+  const uploader =
+    walkRuns(vr.ownerText && vr.ownerText.runs) ||
+    walkRuns(vr.shortBylineText && vr.shortBylineText.runs) ||
+    "";
+  return { id, title, uploader, source: "innertube" };
+}
+
+function extractChannelFromRenderer(cr) {
+  if (!cr) return null;
+  const id =
+    cr.channelId ||
+    (cr.navigationEndpoint &&
+      cr.navigationEndpoint.browseEndpoint &&
+      cr.navigationEndpoint.browseEndpoint.browseId) ||
+    "";
+  if (!id || !String(id).startsWith("UC")) return null;
+  const name = walkRuns(cr.title && cr.title.runs) || (cr.title && cr.title.simpleText) || id;
+  let thumbnail = "";
+  try {
+    const th = (cr.thumbnail && cr.thumbnail.thumbnails) || [];
+    thumbnail = (th[th.length - 1] || th[0] || {}).url || "";
+  } catch (_) {}
+  return { id, name, thumbnail, source: "innertube" };
+}
+
+function sectionItems(data) {
+  const sections =
+    (data.contents &&
+      data.contents.twoColumnSearchResultsRenderer &&
+      data.contents.twoColumnSearchResultsRenderer.primaryContents &&
+      data.contents.twoColumnSearchResultsRenderer.primaryContents.sectionListRenderer &&
+      data.contents.twoColumnSearchResultsRenderer.primaryContents.sectionListRenderer.contents) ||
+    [];
+  const items = [];
+  for (const sec of sections) {
+    const list = (sec.itemSectionRenderer && sec.itemSectionRenderer.contents) || [];
+    for (const it of list) items.push(it);
+  }
+  return items;
+}
+
+async function searchVideos(query, limit) {
+  const data = await innertube("search", { query });
+  const out = [];
+  for (const it of sectionItems(data)) {
+    const v = extractVideoFromRenderer(it.videoRenderer);
+    if (v) out.push(v);
+    if (out.length >= (limit || 8)) break;
+  }
+  const ql = String(query || "")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((t) => t.length > 1);
+  out.forEach((v) => {
+    let score = 0;
+    const t = (v.title + " " + v.uploader).toLowerCase();
+    ql.forEach((tok) => {
+      if (t.includes(tok)) score += 3;
+    });
+    v.score = score;
+  });
+  out.sort((a, b) => (b.score || 0) - (a.score || 0));
+  return out;
+}
+
+async function searchChannels(query) {
+  const data = await innertube("search", { query });
+  const out = [];
+  for (const it of sectionItems(data)) {
+    const c = extractChannelFromRenderer(it.channelRenderer);
+    if (c) out.push(c);
+  }
+  // also from video uploaders — skip
+  const ql = String(query || "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  out.sort((a, b) => {
+    const an = a.name.toLowerCase().replace(/\s+/g, "");
+    const bn = b.name.toLowerCase().replace(/\s+/g, "");
+    const as = an === ql ? 10 : an.includes(ql) || ql.includes(an) ? 5 : 0;
+    const bs = bn === ql ? 10 : bn.includes(ql) || ql.includes(bn) ? 5 : 0;
+    return bs - as;
+  });
+  return out;
+}
+
+async function resolveChannel(q, channelId) {
+  if (channelId && String(channelId).startsWith("UC")) {
+    return { id: channelId, name: q || channelId };
+  }
+  if (!q) return null;
+  const channels = await searchChannels(q);
+  if (channels[0]) return channels[0];
+  // fallback: ambil channel dari video search pertama
+  const vids = await searchVideos(q, 5);
+  if (vids[0] && vids[0].uploader) {
+    const again = await searchChannels(vids[0].uploader);
+    if (again[0]) return again[0];
+  }
+  return null;
+}
+
+async function channelVideos(channelId, name) {
+  try {
+    const data = await innertube("browse", {
+      browseId: channelId,
+      params: "EgZ2aWRlb3PyBgQKAjoA"
+    });
+    const out = [];
+    const tabs =
+      (data.contents &&
+        data.contents.twoColumnBrowseResultsRenderer &&
+        data.contents.twoColumnBrowseResultsRenderer.tabs) ||
+      [];
+    for (const tab of tabs) {
+      const content = tab.tabRenderer && tab.tabRenderer.content;
+      const rich =
+        (content && content.richGridRenderer && content.richGridRenderer.contents) || [];
+      for (const item of rich) {
+        const vr =
+          (item.richItemRenderer &&
+            item.richItemRenderer.content &&
+            item.richItemRenderer.content.videoRenderer) ||
+          null;
+        const v = extractVideoFromRenderer(vr);
+        if (v) out.push(v);
+        if (out.length >= 12) break;
+      }
+      if (out.length) break;
+    }
+    if (out.length) return out;
+  } catch (_) {}
+  if (name) return await searchVideos(name, 8);
+  return [];
 }
