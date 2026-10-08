@@ -1,6 +1,7 @@
-/* RolxDesk extras v6.1 — restored; YT play + tags */
+/* RolxDesk extras v6.2 — YT play clean (no fake Research fail) */
 (function () {
-  if (window.__RD_EXTRAS_V61__) return;
+  if (window.__RD_EXTRAS_V62__) return;
+  window.__RD_EXTRAS_V62__ = true;
   window.__RD_EXTRAS_V61__ = true;
   window.__RD_EXTRAS__ = true;
 
@@ -62,13 +63,30 @@
     return { kind: "unknown", q: focus.slice(0, 100) };
   }
 
+  /** Buang teks Research gagal yang menumpuk di hasil play */
+  function scrubFakeResearch(text) {
+    var s = String(text || "");
+    // Hapus blok Research kosong / gagal
+    s = s.replace(/\*\*Research\s*\([^)]*\):\*\*\s*\n?\s*Tidak ada hasil[^\n]*/gi, "");
+    s = s.replace(/Research\s*\([^)]*\):\s*\n?\s*Tidak ada hasil[^\n]*/gi, "");
+    s = s.replace(/Tidak ada hasil ringkas untuk:[^\n]*/gi, "");
+    s = s.replace(/Tidak ada hasil untuk:[^\n]*/gi, "");
+    // Kalau ada ▶️ (play sukses), buang SEARCH tag sisa
+    if (/▶️|youtu\.be\//i.test(s)) {
+      s = s.replace(/\[\[SEARCH:\s*[^\]]+\]\]/gi, "");
+    }
+    return s.replace(/\n{3,}/g, "\n\n").trim();
+  }
+
   function forceToolsExpanded(userText, assistantText) {
     var out = assistantText || "";
     var u = String(userText || "");
     if (wantsYoutube(u) || wantsSpotify(u) || /\b(play|putar|mainkan|tonton)\b/i.test(u)) {
       var med = extractMediaQuery(u);
       if (med.kind === "yt-latest" || med.kind === "youtube" || wantsYoutube(u)) {
+        // Play video: JANGAN SEARCH web, JANGAN Spotify
         out = out.replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
+        out = out.replace(/\[\[SEARCH:\s*[^\]]+\]\]/gi, "");
         out = out.replace(/<play:\s*[^>]+>/gi, "");
         out = out.replace(/\[\[YOUTUBE:\s*[^\]]+\]\]/gi, "");
         var yq = med.kind === "yt-latest" ? "latest:" + med.q : med.q;
@@ -82,10 +100,12 @@
   }
 
   function patchForceTools() {
-    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd61) {
+    if (typeof window.forceToolsFromUser === "function" && !window.forceToolsFromUser.__rd62) {
       var prev = window.forceToolsFromUser;
-      window.forceToolsFromUser = function (ut, at) { return forceToolsExpanded(ut, prev(ut, at)); };
-      window.forceToolsFromUser.__rd61 = true;
+      window.forceToolsFromUser = function (ut, at) {
+        return forceToolsExpanded(ut, prev(ut, at));
+      };
+      window.forceToolsFromUser.__rd62 = true;
     } else if (typeof window.forceToolsFromUser !== "function") {
       window.forceToolsFromUser = forceToolsExpanded;
     }
@@ -162,7 +182,7 @@
       } catch (e) {}
     }, 300);
     if (typeof showToast === "function") {
-      try { showToast("YouTube siap — ketuk Putar", "success"); } catch (e2) {}
+      try { showToast("YouTube: " + String(title || id).slice(0, 40), "success"); } catch (e2) {}
     }
     return "▶️ " + (title || id) + "\nhttps://youtu.be/" + id;
   }
@@ -230,6 +250,10 @@
       if (wantsYoutube(q) || /dadylocky|lofi|channel|youtuber|vlog|video/i.test(q)) return "[[YOUTUBE: " + String(q).trim() + "]]";
       return full;
     });
+    // Kalau ada YOUTUBE, buang SEARCH dulu biar gak muncul "Research gagal"
+    if (/\[\[YOUTUBE:/i.test(out)) {
+      out = out.replace(/\[\[SEARCH:\s*[^\]]+\]\]/gi, "");
+    }
     var yts = [...out.matchAll(/\[\[YOUTUBE:\s*([^\]]+)\]\]/gi)];
     for (var i = 0; i < yts.length; i++) {
       var msg = await playYoutubeSmart(yts[i][1].trim());
@@ -240,34 +264,43 @@
       var res = await playSpotifyReal(plays[j][1].trim());
       out = out.replace(plays[j][0], "\n" + res + "\n");
     }
-    return out;
+    return scrubFakeResearch(out);
   }
 
   function patchRunAgentTags() {
-    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd61) {
+    if (typeof window.runAgentTags === "function" && !window.runAgentTags.__rd62) {
       var orig = window.runAgentTags;
       window.runAgentTags = async function (content) {
         unlockSend();
         try {
           var pre = await handleMediaTags(content);
+          // Setelah play, buang SEARCH sisa sebelum core jalan
+          if (/▶️|youtu\.be\//i.test(pre)) {
+            pre = pre.replace(/\[\[SEARCH:\s*[^\]]+\]\]/gi, "");
+          }
           pre = pre.replace(/\[\[YOUTUBE:\s*[^\]]+\]\]/gi, "").replace(/\[\[PLAY:\s*[^\]]+\]\]/gi, "");
-          return await withTimeout(Promise.resolve(orig(pre)), 60000, "agent");
-        } catch (e) { unlockSend(); return "Error: " + (e.message || e); }
-        finally { unlockSend(); }
+          var mid = await withTimeout(Promise.resolve(orig(pre)), 60000, "agent");
+          return scrubFakeResearch(mid);
+        } catch (e) {
+          unlockSend();
+          return "Error: " + (e.message || e);
+        } finally {
+          unlockSend();
+        }
       };
-      window.runAgentTags.__rd61 = true;
+      window.runAgentTags.__rd62 = true;
     }
   }
 
   function patchMaybePlay() {
-    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd61) {
+    if (typeof window.maybePlayFromText === "function" && !window.maybePlayFromText.__rd62) {
       var prev = window.maybePlayFromText;
       window.maybePlayFromText = function (text) {
         if (wantsYoutube(String(text || ""))) return false;
         if (/\[\[YOUTUBE:/i.test(String(text || ""))) return false;
         return prev.apply(this, arguments);
       };
-      window.maybePlayFromText.__rd61 = true;
+      window.maybePlayFromText.__rd62 = true;
     }
   }
 
