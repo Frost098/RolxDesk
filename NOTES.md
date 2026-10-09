@@ -1,15 +1,13 @@
-# Catatan Proyek
 
-## RD × CisyPi
 
-Kolaborasi sekarang terlihat langsung di UI RD melalui hero card, badge header, dan link publik ke CisyPi. Rafli-links juga memuat kartu RolxDesk.
+## v11 — CisyPi bridge and capability hardening
 
-RD tidak menyalin atau mengubah auth internal CisyPi. Integrasi tool lintas-proyek memakai Custom MCP jika endpoint resmi CisyPi dan key yang sesuai tersedia.
+- RD now has a read-only `/api/cisypi-catalog` adapter for the public CisyPi catalog.
+- Natural language such as `putar video Hu Tao yang ada di CisyPi` becomes `[[CISYPI: Hu Tao]]`.
+- The picker shows title, creator, thumbnail, moderation/source status, and official source/embed. RD does not copy or expose expiring media URLs.
+- Multi-part OpenAI/Claude content is normalized so an object/array response does not render as an empty bubble.
+- Manus receives the recent conversation plus the actual RolxDesk tool contract instead of only the last text fragment.
+- Mobile voice ignore window was reduced to avoid discarding the first spoken phrase after microphone permission.
+- Teamwork final output budget was increased; free image mode is labelled as an external public endpoint and does not claim private storage.
 
-## Arah produk
-
-RolxDesk diarahkan menjadi open-source wrapped AI desk yang terasa hidup, santai, ringkas secara default, transparan saat memakai tools, dan bisa diperluas lewat provider OpenAI-compatible serta Custom MCP.
-
-## CisyPi access boundary
-
-URL `cisypistream-mktfzcae.manus.space` bisa dibuka publik, tetapi sesi ini belum memiliki Webdev project binding/resource URI atau source checkout CisyPi. Karena itu perubahan langsung pada CisyPi belum dipalsukan. Video Picker dan action-first tool layer sudah disiapkan di RD; untuk mengubah source CisyPi secara langsung diperlukan project/resource CisyPi yang ter-attach ke sesi.
+CisyPi remains unchanged: this is an RD-side read-only collaboration adapter.

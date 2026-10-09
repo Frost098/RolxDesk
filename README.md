@@ -134,3 +134,12 @@ PRs welcome. Please:
 ## License
 
 Open source. Fork it, break it, ship a better desk.
+
+
+## CisyPi collaboration bridge (v11)
+
+RD can search the public CisyPi catalog without modifying CisyPi auth or database. Ask in chat: `putar video Hu Tao yang ada di CisyPi` or `cari video pantai di CisyPi`. RD opens a picker and uses the official source/embed when available. It does not expose expiring media URLs or pretend that a video played before the player is mounted.
+
+The bridge endpoint is `GET /api/cisypi-catalog?q=...`; it is read-only and returns normalized metadata. `[[CISYPI: query]]` is the agent tag.
+
+v11 also hardens OpenAI-compatible response parsing for Claude-style content arrays, gives the Manus agent the recent conversation and real RD tool contract, reduces mobile voice first-phrase loss, and expands the Teamwork final output budget. Free image mode is explicitly an external public image endpoint; users should not treat it as private storage.
