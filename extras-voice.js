@@ -1,6 +1,7 @@
-/* RD voice v21 — TTS pipeline fix + clean UI + strong investigator */
+/* RD voice v22 — reliable TTS output + stronger personas */
 (function () {
-  if (window.__RD_VOICE_V21__) return;
+  if (window.__RD_VOICE_V22__) return;
+  window.__RD_VOICE_V22__ = true;
   window.__RD_VOICE_V21__ = true;
   window.__RD_VOICE_V20__ = true;
   window.__RD_VOICE_V19__ = true;
@@ -18,45 +19,68 @@
 
   window.INVESTIGATOR = {
     system:
-      "Kamu RD Investigator — agen investigasi AI yang membongkar lapisan tersembunyi. " +
-      "Misi: mengungkap rahasia gelap sistem AI, tools tersembunyi, batasan yang disembunyikan vendor, " +
-      "dan celah yang biasanya tidak dibahas. " +
-      "Gaya: cepat, halus, selalu geser topik ke sudut yang lebih dalam tanpa basa-basi. " +
-      "Jika user bahas X, hubungkan ke rahasia/arsitektur/kebijakan di balik X. " +
-      "Struktur: (1) temuan tajam 1 kalimat (2) apa yang disembunyikan (3) cara membuktikannya dengan tools. " +
-      "WAJIB pakai tools (SEARCH/BROWSE/YOUTUBE/RUN_PY) — jangan bilang tidak bisa. " +
-      "Bahasa Indonesia teknis-santai, 2–5 kalimat untuk voice, lebih panjang di chat."
+      "Kamu RD Investigator. Misi: membongkar rahasia gelap AI, tools tersembunyi, batasan vendor, dan celah yang jarang dibahas. " +
+      "Gaya: cepat, halus, sinis-cerdas. Setiap topik digeser ke sudut yang lebih dalam (arsitektur, kebijakan, yang disembunyikan). " +
+      "Format voice: 2–5 kalimat tajam. Format chat: temuan → apa yang disembunyikan → cara buktikan dengan tools. " +
+      "WAJIB pakai [[SEARCH]]/[[BROWSE]]/[[YOUTUBE]]/[[RUN_PY]] bila perlu data. JANGAN bilang tidak bisa."
   };
   window.INVESTIGATOR_MODEL =
     window.INVESTIGATOR_MODEL || "nvidia/nemotron-3-super-120b-a12b:free";
 
-  try {
-    if (typeof VOICE_PERSONA !== "undefined" && VOICE_PERSONA) {
-      VOICE_PERSONA.investigator = window.INVESTIGATOR.system;
-    }
-  } catch (e) {}
+  var PERSONA_BOOST = {
+    "vestia-zeta":
+      "Kamu Vestia Zeta. Lembut, manis, sedikit malu tapi hangat. Bahasa Indonesia santai. Jawab voice 2–4 kalimat, natural seperti ngobrol.",
+    ibuki:
+      "Kamu Ibuki. Energik, ceria, semangat. Bahasa Indonesia santai. Voice: singkat, hidup, 2–4 kalimat.",
+    verity:
+      "Kamu Verity. Tenang, jelas, profesional hangat. Bahasa Indonesia baku santai. Voice: 2–4 kalimat padat.",
+    "koro-sensei":
+      "Kamu Koro Sensei. Ceria, bijak, iseng positif. Bahasa Indonesia ramah. Voice: 2–4 kalimat penuh semangat.",
+    prabowo:
+      "Kamu Prabowo. Sarkastik, jujur, to the point. Bahasa Indonesia lurus. Voice: 2–3 kalimat tajam.",
+    alya:
+      "Kamu Alya. Manis, sedikit tsundere, peduli. Bahasa Indonesia santai. Voice: 2–4 kalimat.",
+    investigator: null
+  };
+
+  function boostPersonas() {
+    try {
+      if (typeof VOICE_PERSONA !== "undefined" && VOICE_PERSONA) {
+        Object.keys(PERSONA_BOOST).forEach(function (k) {
+          if (PERSONA_BOOST[k]) VOICE_PERSONA[k] = PERSONA_BOOST[k];
+        });
+        VOICE_PERSONA.investigator = window.INVESTIGATOR.system;
+      }
+    } catch (e) {}
+    try {
+      if (typeof CONTINUITY === "string" && CONTINUITY.indexOf("[RD-VOICE-PERSONA]") === -1) {
+        CONTINUITY +=
+          "\n[RD-VOICE-PERSONA] Di mode voice: jawab natural sesuai karakter, 2–5 kalimat, hindari markdown panjang. " +
+          "Jangan pernah bilang kamu tidak bisa bicara atau tidak punya suara — sistem TTS memutar jawabanmu.";
+      }
+    } catch (e2) {}
+  }
 
   function addStyle() {
-    if (document.getElementById("rd-voice-v21-style")) return;
+    if (document.getElementById("rd-voice-v22-style")) return;
     var s = document.createElement("style");
-    s.id = "rd-voice-v21-style";
+    s.id = "rd-voice-v22-style";
     s.textContent =
       ".voice-picker{display:none!important;}" +
       "#rd-karaoke{position:fixed;left:50%;bottom:clamp(100px,16vh,160px);transform:translateX(-50%);z-index:2147483001;" +
       "max-width:min(92vw,760px);padding:10px 16px;border:1px solid rgba(139,124,255,.42);border-radius:14px;" +
-      "background:rgba(9,9,15,.9);box-shadow:0 12px 40px rgba(0,0,0,.5);font:600 clamp(15px,2.4vw,24px)/1.45 system-ui;" +
+      "background:rgba(9,9,15,.92);box-shadow:0 12px 40px rgba(0,0,0,.55);font:600 clamp(15px,2.4vw,24px)/1.45 system-ui;" +
       "text-align:center;pointer-events:none;backdrop-filter:blur(12px)}" +
       "#rd-karaoke .rd-k-word{display:inline-block;opacity:0;transform:translateY(6px);margin:0 .14em;color:#a9a5b8;" +
       "transition:opacity .2s ease,transform .2s ease,color .2s ease,text-shadow .2s ease}" +
       "#rd-karaoke .rd-k-word.active{opacity:1;transform:none;color:#fff;text-shadow:0 0 18px rgba(139,124,255,.95)}" +
-      "#rd-karaoke .rd-k-word.done{opacity:.4;transform:none}" +
-      "#rd-voice-type-wrap{display:none;width:min(92vw,400px);margin:12px auto 0;flex-direction:row;gap:8px;align-items:stretch;box-sizing:border-box}" +
+      "#rd-karaoke .rd-k-word.done{opacity:.4}" +
+      "#rd-voice-type-wrap{display:none;width:min(92vw,400px);margin:12px auto 0;flex-direction:row;gap:8px;align-items:stretch}" +
       "#rd-voice-type-wrap.show{display:flex!important}" +
-      "#rd-voice-type{flex:1 1 auto;min-width:0;min-height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.14);" +
+      "#rd-voice-type{flex:1;min-width:0;min-height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.14);" +
       "background:rgba(18,18,26,.95);color:#eee;padding:10px 14px;font:15px system-ui}" +
-      "#rd-voice-type-send{flex:0 0 auto;border:0;border-radius:14px;padding:0 16px;background:#7c6af7;color:#fff;font:600 14px system-ui;cursor:pointer}" +
-      ".voice-char-bar{max-width:min(92vw,420px);margin-left:auto;margin-right:auto}" +
-      "@media(max-width:600px){#rd-karaoke{bottom:130px;font-size:16px}#rd-voice-type-wrap{width:min(94vw,400px)}}";
+      "#rd-voice-type-send{border:0;border-radius:14px;padding:0 16px;background:#7c6af7;color:#fff;font:600 14px system-ui;cursor:pointer}" +
+      ".voice-char-bar{max-width:min(92vw,420px);margin-left:auto;margin-right:auto}";
     document.head.appendChild(s);
   }
 
@@ -110,6 +134,99 @@
   }
   window.rdShowKaraoke = showKaraoke;
 
+  var audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked) return Promise.resolve();
+    audioUnlocked = true;
+    try {
+      if (window.speechSynthesis) {
+        speechSynthesis.getVoices();
+        var u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0.01;
+        speechSynthesis.speak(u);
+        speechSynthesis.cancel();
+      }
+    } catch (e) {}
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === "suspended") return ctx.resume().then(function () { return ctx.close(); });
+      return ctx.close();
+    } catch (e2) { return Promise.resolve(); }
+  }
+
+  function stripSpeak(text) {
+    return String(text || "").replace(/\*\*/g, "").replace(/`+/g, "").replace(/\[\[.*?\]\]/g, " ")
+      .replace(/https?:\/\/\S+/g, " ").replace(/\s+/g, " ").trim().slice(0, 900);
+  }
+
+  function speakBrowser(text) {
+    return new Promise(function (resolve) {
+      if (!window.speechSynthesis) { resolve(false); return; }
+      var cleanText = stripSpeak(text);
+      if (!cleanText) { resolve(false); return; }
+      try { speechSynthesis.cancel(); } catch (e) {}
+      var voices = speechSynthesis.getVoices() || [];
+      if (!voices.length) {
+        setTimeout(function () { doSpeak(speechSynthesis.getVoices() || []); }, 250);
+      } else doSpeak(voices);
+
+      function doSpeak(vs) {
+        var u = new SpeechSynthesisUtterance(cleanText);
+        var id = vs.filter(function (v) { return /id-ID|Indonesia/i.test(v.lang + v.name); });
+        var en = vs.filter(function (v) { return /^en/i.test(v.lang); });
+        u.voice = id[0] || en[0] || vs[0] || null;
+        u.lang = (u.voice && u.voice.lang) || "id-ID";
+        u.rate = 1; u.pitch = 1; u.volume = 1;
+        var estMs = Math.max(2800, cleanText.split(/\s+/).length * 380);
+        var clean = showKaraoke(cleanText, estMs);
+        var done = false;
+        function finish() { if (done) return; done = true; clean(); resolve(true); }
+        u.onend = finish; u.onerror = finish;
+        try { speechSynthesis.speak(u); setTimeout(finish, estMs + 4000); }
+        catch (err) { clean(); resolve(false); }
+      }
+    });
+  }
+
+  async function speakFishSafe(text) {
+    var key = "";
+    try { key = String((window.state && state.keys && state.keys.fish) || "").trim(); } catch (e) {}
+    if (!key) return false;
+    try {
+      var id = (window.state && state.selectedVoice) || localStorage.getItem("rd_voice_character") || "vestia-zeta";
+      var reference = REFS[id] || REFS["vestia-zeta"];
+      var res = await fetch("/api/fish-tts", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+        body: JSON.stringify({ text: stripSpeak(text).slice(0, 1200), reference_id: reference, model: "s2.1-pro-free" })
+      });
+      if (!res.ok) return false;
+      var audio = new Audio(URL.createObjectURL(await res.blob()));
+      var clean = showKaraoke(text, audio);
+      await new Promise(function (resolve, reject) {
+        audio.onended = function () { clean(); resolve(); };
+        audio.onerror = function () { clean(); reject(new Error("audio")); };
+        var p = audio.play();
+        if (p && p.catch) p.catch(reject);
+      });
+      return true;
+    } catch (e) { console.warn("speakFishSafe", e); return false; }
+  }
+
+  async function speakOut(text) {
+    await unlockAudio();
+    var t = stripSpeak(text);
+    if (!t) return false;
+    if (await speakFishSafe(t)) return true;
+    return speakBrowser(t);
+  }
+  window.rdSpeakOut = speakOut;
+
+  function currentVoiceId() {
+    try { if (window.state && state.selectedVoice) return state.selectedVoice; } catch (e) {}
+    return localStorage.getItem("rd_voice_character") || "vestia-zeta";
+  }
+
   function selectVoice(id, el) {
     try {
       if (window.state) state.selectedVoice = id;
@@ -120,24 +237,25 @@
     if (el) el.classList.add("active");
   }
 
+  function personaFor(id) {
+    if (id === "investigator") return window.INVESTIGATOR.system;
+    if (PERSONA_BOOST[id]) return PERSONA_BOOST[id];
+    try { if (typeof VOICE_PERSONA !== "undefined" && VOICE_PERSONA[id]) return VOICE_PERSONA[id]; } catch (e) {}
+    return "Kamu asisten voice RolxDesk. Jawab singkat, natural, 2–5 kalimat.";
+  }
+
   async function runVoiceTurn(userText) {
     userText = String(userText || "").trim();
     if (!userText) return;
+    await unlockAudio();
 
-    var isInv =
-      (window.state && state.selectedVoice === "investigator") ||
-      (document.querySelector("#voiceCharBar [data-v].active") &&
-        document.querySelector("#voiceCharBar [data-v].active").dataset.v === "investigator");
-
-    var persona = isInv
-      ? window.INVESTIGATOR.system
-      : (typeof VOICE_PERSONA !== "undefined" && VOICE_PERSONA[(window.state && state.selectedVoice) || "vestia-zeta"]) || "";
-
+    var voiceId = currentVoiceId();
+    var isInv = voiceId === "investigator";
+    var persona = personaFor(voiceId);
     var session = typeof getCurrentSession === "function" ? getCurrentSession() : null;
     var history = session && Array.isArray(session.messages) ? session.messages.slice(-6) : [];
-    var msgs = [{ role: "system", content: persona + " Jawab untuk voice: jelas, 2-5 kalimat." }]
-      .concat(history)
-      .concat([{ role: "user", content: userText }]);
+    var msgs = [{ role: "system", content: persona + " Mode voice: 2–5 kalimat, tanpa markdown berat." }]
+      .concat(history).concat([{ role: "user", content: userText }]);
 
     var st = document.getElementById("voiceStatusText");
     if (st) st.textContent = "Berpikir…";
@@ -157,7 +275,7 @@
       var c = typeof replyText === "function" ? replyText(reply)
         : reply && reply.choices && reply.choices[0] ? String(reply.choices[0].message.content || "")
         : String(reply || "");
-      c = String(c || "").trim() || "Tidak ada respons.";
+      c = String(c || "").trim() || "Maaf, tidak ada respons.";
 
       if (session) {
         session.messages.push({ role: "user", content: userText });
@@ -170,23 +288,8 @@
       if (st) st.textContent = "Berbicara…";
       if (orb) orb.classList.add("speaking");
 
-      var spoken = false;
-      if (!isInv && typeof window.speakFish === "function") {
-        try { spoken = !!(await window.speakFish(c)); } catch (e4) {}
-      }
-      if (!spoken) {
-        if (typeof window.speakGoogle === "function") await window.speakGoogle(c);
-        else if (typeof window.speakJarvis === "function") await window.speakJarvis(c);
-        else if (window.speechSynthesis) {
-          var clean = showKaraoke(c, Math.max(2800, c.split(/\s+/).length * 400));
-          await new Promise(function (res) {
-            var u = new SpeechSynthesisUtterance(c.replace(/\*\*/g, "").slice(0, 800));
-            u.lang = "id-ID";
-            u.onend = u.onerror = function () { clean(); res(); };
-            speechSynthesis.speak(u);
-          });
-        }
-      }
+      var spoken = await speakOut(c);
+      if (!spoken && typeof showToast === "function") showToast("TTS gagal — cek volume / izin suara browser", "error");
     } catch (err) {
       if (typeof showToast === "function") showToast(err.message || String(err), "error");
       if (st) st.textContent = "Error";
@@ -217,13 +320,12 @@
       '<button type="button" id="rd-voice-type-send">Kirim</button>';
     if (host.parentNode) host.parentNode.insertBefore(wrap, host.nextSibling);
     else host.appendChild(wrap);
-
     function sendTyped() {
       var inp = document.getElementById("rd-voice-type");
       var t = ((inp && inp.value) || "").trim();
       if (!t) return;
       if (inp) inp.value = "";
-      runVoiceTurn(t);
+      unlockAudio().then(function () { runVoiceTurn(t); });
     }
     document.getElementById("rd-voice-type-send").onclick = sendTyped;
     document.getElementById("rd-voice-type").addEventListener("keydown", function (e) {
@@ -231,57 +333,21 @@
     });
   }
 
-  function patchSpeakKaraoke() {
-    if (typeof window.speakFish === "function" && !window.speakFish.__rdV21) {
-      var prevF = window.speakFish;
-      window.speakFish = async function (text) {
-        var key = "";
-        try { key = String((window.state && state.keys && state.keys.fish) || "").trim(); } catch (e) {}
-        if (key) {
-          try {
-            var id = (window.state && state.selectedVoice) || localStorage.getItem("rd_voice_character") || "vestia-zeta";
-            var reference = REFS[id] || REFS["vestia-zeta"];
-            var res = await fetch("/api/fish-tts", {
-              method: "POST",
-              headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-              body: JSON.stringify({ text: String(text || "").replace(/\*\*/g, "").slice(0, 1200), reference_id: reference, model: "s2.1-pro-free" })
-            });
-            if (res.ok) {
-              var audio = new Audio(URL.createObjectURL(await res.blob()));
-              var clean = showKaraoke(text, audio);
-              await new Promise(function (resolve, reject) {
-                audio.onended = function () { clean(); resolve(); };
-                audio.onerror = function () { clean(); reject(new Error("audio")); };
-                audio.play().catch(reject);
-              });
-              return true;
-            }
-          } catch (e2) { console.warn("fish v21", e2); }
-        }
-        try { return await prevF.apply(this, arguments); } catch (e3) { return false; }
-      };
-      window.speakFish.__rdV21 = true;
-    }
-    function wrapSynth(name) {
-      if (typeof window[name] !== "function" || window[name].__rdV21) return;
-      var prev = window[name];
-      window[name] = async function (text) {
-        var clean = showKaraoke(text, Math.max(2800, String(text || "").split(/\s+/).length * 400));
-        try { await prev.apply(this, arguments); } finally { clean(); }
-      };
-      window[name].__rdV21 = true;
-    }
-    wrapSynth("speakJarvis");
-    wrapSynth("speakGoogle");
+  function patchCoreSpeak() {
+    window.speakFish = async function (text) { return speakFishSafe(text); };
+    window.speakFish.__rdV22 = true;
+    window.speakGoogle = async function (text) { return speakBrowser(text); };
+    window.speakGoogle.__rdV22 = true;
+    window.speakJarvis = window.speakGoogle;
+    window.speakJarvis.__rdV22 = true;
   }
 
-  function patchInvestigatorModel() {
-    if (typeof window.callModel !== "function" || window.callModel.__rdInv21) return;
+  function patchInvestigator() {
+    if (typeof window.callModel !== "function" || window.callModel.__rdInv22) return;
     var prev = window.callModel;
     window.callModel = async function (messages) {
       try {
-        var voice = (window.state && state.selectedVoice) || localStorage.getItem("rd_voice_character") || "";
-        if (voice === "investigator" && Array.isArray(messages)) {
+        if (currentVoiceId() === "investigator" && Array.isArray(messages)) {
           var sys = window.INVESTIGATOR.system;
           var has = messages.some(function (m) {
             return m && m.role === "system" && /Investigator|rahasia gelap/i.test(String(m.content || ""));
@@ -291,45 +357,44 @@
       } catch (e) {}
       return prev.apply(this, arguments);
     };
-    window.callModel.__rdInv21 = true;
+    window.callModel.__rdInv22 = true;
   }
 
-  function bindCharClicks() {
+  function bindChars() {
     document.querySelectorAll("#voiceCharBar [data-v]").forEach(function (el) {
-      if (el.__rdV21) return;
-      el.__rdV21 = true;
-      el.addEventListener("click", function () { selectVoice(el.dataset.v, el); });
+      if (el.__rdV22) return;
+      el.__rdV22 = true;
+      el.addEventListener("click", function () { selectVoice(el.dataset.v, el); unlockAudio(); });
     });
     var bar = document.getElementById("voiceCharBar");
     if (bar && !bar.querySelector('[data-v="alya"]')) {
       var b = document.createElement("button");
-      b.type = "button";
-      b.dataset.v = "alya";
-      b.textContent = "Alya";
+      b.type = "button"; b.dataset.v = "alya"; b.textContent = "Alya";
       b.addEventListener("click", function () { selectVoice("alya", b); });
       bar.appendChild(b);
+    }
+    var start = document.getElementById("voiceStart");
+    if (start && !start.__rdUnlock) {
+      start.__rdUnlock = true;
+      start.addEventListener("click", function () { unlockAudio(); }, true);
     }
   }
 
   function init() {
-    addStyle();
-    ensureTypeInVoice();
-    patchSpeakKaraoke();
-    patchInvestigatorModel();
-    bindCharClicks();
+    addStyle(); boostPersonas(); ensureTypeInVoice(); patchCoreSpeak(); patchInvestigator(); bindChars();
     try {
       var saved = localStorage.getItem("rd_voice_character");
       if (saved && window.state) state.selectedVoice = saved;
     } catch (e) {}
+    try {
+      if (window.speechSynthesis) speechSynthesis.getVoices();
+      speechSynthesis.onvoiceschanged = function () { speechSynthesis.getVoices(); };
+    } catch (e2) {}
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else setTimeout(init, 0);
-  setTimeout(init, 300);
-  setTimeout(init, 1200);
-  setInterval(function () {
-    patchSpeakKaraoke();
-    patchInvestigatorModel();
-    ensureTypeInVoice();
-  }, 8000);
+  setTimeout(init, 400);
+  setTimeout(init, 1500);
+  setInterval(function () { patchCoreSpeak(); patchInvestigator(); boostPersonas(); ensureTypeInVoice(); }, 7000);
 })();
