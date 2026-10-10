@@ -21,3 +21,7 @@ Restored the encoded code payload declaration needed by Copy/Download after the 
 ## 28. v18 — Fish Audio CORS proxy
 
 Voice TTS no longer calls `api.fish.audio` directly from the browser. The client sends the request to `/api/fish-tts`; the server-side function forwards it to Fish Audio and returns the MP3 response. This removes the browser preflight/CORS failure and keeps the Fish key out of the third-party request path visible to the page.
+
+## 29. v19 — exact character voices and karaoke subtitles
+
+Fish Audio reference IDs are mapped explicitly: Ibuki, Alya, Koro Sensei, Verity, Zeta, and Prabowo. Alya is now available in the voice picker. Voice response text stays hidden until audio playback begins; the overlay then reveals words one at a time with fade-in/fade-out styling. Timing is estimated from the returned audio duration and word/punctuation weights because Fish TTS returns audio bytes, not word-level alignment timestamps.
