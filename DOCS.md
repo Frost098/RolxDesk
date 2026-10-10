@@ -17,3 +17,7 @@ Code fences now render as one focused dark code panel inspired by Astra Companio
 ## 27. v17 — code block render hotfix
 
 Restored the encoded code payload declaration needed by Copy/Download after the Astra-style renderer refactor. Full UI source and gzip chunks pass round-trip validation.
+
+## 28. v18 — Fish Audio CORS proxy
+
+Voice TTS no longer calls `api.fish.audio` directly from the browser. The client sends the request to `/api/fish-tts`; the server-side function forwards it to Fish Audio and returns the MP3 response. This removes the browser preflight/CORS failure and keeps the Fish key out of the third-party request path visible to the page.
