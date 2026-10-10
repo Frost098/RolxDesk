@@ -237,8 +237,12 @@ async function search(req, res) {
       return {};
     });
     if (!sRes.ok) {
-      return res.status(sRes.status).json({
-        error: (data.error && data.error.message) || "Spotify search " + sRes.status
+      const authFailure = sRes.status === 401 || sRes.status === 403;
+      return res.status(authFailure ? 502 : sRes.status).json({
+        error: authFailure
+          ? "Spotify menolak kredensial server (HTTP " + sRes.status + "). Perbarui SPOTIFY_CLIENT_ID/SECRET di Vercel lalu redeploy."
+          : (data.error && data.error.message) || "Spotify search " + sRes.status,
+        upstream_status: sRes.status
       });
     }
 

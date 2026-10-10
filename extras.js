@@ -237,8 +237,11 @@
         if (wrap) wrap.style.display = "block";
         return "🎵 " + (j.name || q);
       }
-    } catch (e) {}
-    return "Spotify gagal. Untuk video pakai kata video/youtube.";
+      if (j && j.error) return "Spotify tidak tersedia: " + j.error;
+      return "Spotify tidak menemukan track: " + q;
+    } catch (e) {
+      return "Spotify gagal merespons: " + (e && e.message ? e.message : String(e));
+    }
   }
   window.playSpotify = playSpotifyReal;
 

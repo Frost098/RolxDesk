@@ -9,3 +9,7 @@ CisyPi requests are now executed before the model call whenever the user message
 CisyPi intent sekarang selesai sebagai aksi final setelah picker dibuka: RD tidak lagi memanggil model kedua kali, sehingga picker tidak dobel dan provider tidak timeout hanya karena command media. Auto-search Wikipedia juga dilewati untuk pesan CisyPi.
 
 Adapter menambahkan gateway playback `d.fxtwitter.com/{handle}/status/{id}.mp4`, mengikuti resolver playback internal CisyPi. Player mencoba video element nyata lebih dulu dan hanya memakai official X embed sebagai fallback jika gateway gagal. Gateway dapat kedaluwarsa; UI tidak menganggap playback berhasil sebelum elemen video/source tersedia.
+
+## 26. v16 — Astra-style code blocks
+
+Code fences now render as one focused dark code panel inspired by Astra Companion: compact language/file header, Copy and Download actions, mobile-safe horizontal scrolling, and no duplicate file card. Spotify upstream 401/403 responses are normalized into an actionable configuration message instead of a generic playback failure.
