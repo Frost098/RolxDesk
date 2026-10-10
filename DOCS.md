@@ -13,3 +13,7 @@ Adapter menambahkan gateway playback `d.fxtwitter.com/{handle}/status/{id}.mp4`,
 ## 26. v16 — Astra-style code blocks
 
 Code fences now render as one focused dark code panel inspired by Astra Companion: compact language/file header, Copy and Download actions, mobile-safe horizontal scrolling, and no duplicate file card. Spotify upstream 401/403 responses are normalized into an actionable configuration message instead of a generic playback failure.
+
+## 27. v17 — code block render hotfix
+
+Restored the encoded code payload declaration needed by Copy/Download after the Astra-style renderer refactor. Full UI source and gzip chunks pass round-trip validation.
