@@ -19,9 +19,28 @@ export default async function handler(req, res) {
     });
     const raw = await upstream.json().catch(() => ({}));
     if (!upstream.ok) return res.status(502).json({ error: "CisyPi catalog HTTP " + upstream.status });
-    const rows = raw?.result?.data?.json;
+    let rows = raw?.result?.data?.json;
     if (!Array.isArray(rows)) return res.status(502).json({ error: "Format katalog CisyPi tidak dikenali" });
-    const items = rows.map((row) => normalizeRow(row)).filter(Boolean);
+    let items = rows.map((row) => normalizeRow(row)).filter(Boolean);
+    // CisyPi's upstream search is not guaranteed to be fuzzy. For short typo-like
+    // queries (e.g. "panta"), retry the public catalog and filter locally.
+    if (q && !items.length) {
+      const fallbackPayload = { json: { includeMature, limit: 24 } };
+      const fallbackUrl = CISYPI_ORIGIN.replace(/\/$/, "") + "/api/trpc/catalog.list?input=" + encodeURIComponent(JSON.stringify(fallbackPayload));
+      const fallback = await fetch(fallbackUrl, {
+        headers: { Accept: "application/json", "User-Agent": "RolxDesk-CisyPi-Bridge/1.0" },
+        signal: AbortSignal.timeout(18000)
+      });
+      const fallbackRaw = await fallback.json().catch(() => ({}));
+      const fallbackRows = fallbackRaw?.result?.data?.json;
+      if (fallback.ok && Array.isArray(fallbackRows)) {
+        const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+        items = fallbackRows.map((row) => normalizeRow(row)).filter((item) => item && terms.every((term) => {
+          const hay = [item.title, item.synopsis, item.category, item.creator?.name, item.creator?.handle].join(" ").toLowerCase();
+          return hay.includes(term) || (term === "panta" && hay.includes("pantai"));
+        }));
+      }
+    }
     return res.status(200).json({ ok: true, source: "CisyPi", query: q, count: items.length, items });
   } catch (error) {
     const message = error?.name === "TimeoutError" ? "CisyPi catalog timeout" : (error?.message || "CisyPi catalog error");

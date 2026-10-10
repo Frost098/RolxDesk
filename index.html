@@ -72,10 +72,10 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
     progress(95); status("Render…");
     html = html.replace(/<script[^>]*(extras(?:-ui|-fix|-hotfix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi, "");
     html = html.replace(/<\/body>/i,
-      '<script src="./extras.js?v=90"><\/script>' +
-      '<script src="./extras-ui.js?v=90"><\/script>' +
-      '<script src="./extras-fix.js?v=90"><\/script>' +
-      '<script src="./extras-hotfix.js?v=90"><\/script><script src="./extras-cisypi.js?v=90"><\/script><script src="./extras-v11.js?v=90"><\/script></body>');
+      '<script src="./extras.js?v=92"><\/script>' +
+      '<script src="./extras-ui.js?v=92"><\/script>' +
+      '<script src="./extras-fix.js?v=92"><\/script>' +
+      '<script src="./extras-hotfix.js?v=92"><\/script><script src="./extras-cisypi.js?v=92"><\/script><script src="./extras-v11.js?v=92"><\/script><script src="./extras-v12.js?v=92"><\/script></body>');
     var elapsed = Date.now() - t0;
     var wait = Math.max(0, Math.min(MAX_MS, 900) - elapsed);
     await new Promise(function (res) { setTimeout(res, wait); });
