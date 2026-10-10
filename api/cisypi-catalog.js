@@ -55,6 +55,10 @@ function normalizeRow(row) {
   const source = String(v.sourceUrl || "");
   const postId = String(v.sourcePostId || "");
   const xEmbed = /^\d{5,30}$/.test(postId) ? "https://platform.twitter.com/embed/Tweet.html?id=" + postId : null;
+  const handleMatch = source.match(/^https:\/\/(?:x\.com|twitter\.com)\/([^/]+)\/status\/\d+/i);
+  const gatewayUrl = handleMatch && /^\d{5,30}$/.test(postId)
+    ? "https://d.fxtwitter.com/" + encodeURIComponent(handleMatch[1]) + "/status/" + postId + ".mp4"
+    : null;
   return {
     id: String(v.id),
     title: String(v.editorialTitle || "Untitled CisyPi video").slice(0, 240),
@@ -68,7 +72,8 @@ function normalizeRow(row) {
     creator: { handle: creator.handle || null, name: creator.displayName || creator.handle || null },
     sourceUrl: /^https:\/\/(x\.com|twitter\.com)\//i.test(source) ? source : null,
     embedUrl: xEmbed,
-    playback: xEmbed ? "official-x-embed" : "open-source-url"
+    playUrl: gatewayUrl,
+    playback: gatewayUrl ? "fxtwitter-gateway" : (xEmbed ? "official-x-embed" : "open-source-url")
   };
 }
 

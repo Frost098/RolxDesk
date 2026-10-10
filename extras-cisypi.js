@@ -12,25 +12,30 @@
     if (!document.getElementById("rd-cp-css")) {
       var style = document.createElement("style");
       style.id = "rd-cp-css";
-      style.textContent = "#rd-cp{position:fixed;z-index:2147482998;right:14px;bottom:88px;width:min(430px,94vw);background:#0c0d12;border:1px solid #3d4160;border-radius:16px;box-shadow:0 18px 60px #000b;overflow:hidden;display:none;color:#eee}#rd-cp.show{display:block}#rd-cp-head{display:flex;gap:8px;align-items:center;padding:10px 12px;background:linear-gradient(120deg,#141526,#101a25)}#rd-cp-title{flex:1;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rd-cp-close{background:transparent;color:#bbb;border:0;font-size:20px;cursor:pointer}#rd-cp-list{max-height:270px;overflow:auto;padding:8px}#rd-cp-list article{display:grid;grid-template-columns:92px 1fr;gap:9px;padding:8px;border:1px solid #292c40;border-radius:10px;margin-bottom:7px;background:#11131b}#rd-cp-list img{width:92px;height:58px;object-fit:cover;border-radius:7px;background:#20222c}#rd-cp-list h4{font-size:12px;margin:0 0 3px}#rd-cp-list p{font-size:10px;color:#aeb2c0;margin:0 0 5px;line-height:1.3}#rd-cp-list button,#rd-cp-list a{font-size:10px;border:1px solid #555b87;background:#202542;color:#fff;border-radius:6px;padding:4px 7px;text-decoration:none;cursor:pointer;margin-right:4px}#rd-cp-frame{width:100%;height:250px;border:0;background:#000;display:none}#rd-cp-note{font-size:10px;color:#9ea5b7;padding:8px 10px;line-height:1.35}";
+      style.textContent = "#rd-cp{position:fixed;z-index:2147482998;right:14px;bottom:88px;width:min(430px,94vw);background:#0c0d12;border:1px solid #3d4160;border-radius:16px;box-shadow:0 18px 60px #000b;overflow:hidden;display:none;color:#eee}#rd-cp.show{display:block}#rd-cp-head{display:flex;gap:8px;align-items:center;padding:10px 12px;background:linear-gradient(120deg,#141526,#101a25)}#rd-cp-title{flex:1;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#rd-cp-close{background:transparent;color:#bbb;border:0;font-size:20px;cursor:pointer}#rd-cp-list{max-height:270px;overflow:auto;padding:8px}#rd-cp-list article{display:grid;grid-template-columns:92px 1fr;gap:9px;padding:8px;border:1px solid #292c40;border-radius:10px;margin-bottom:7px;background:#11131b}#rd-cp-list img{width:92px;height:58px;object-fit:cover;border-radius:7px;background:#20222c}#rd-cp-list h4{font-size:12px;margin:0 0 3px}#rd-cp-list p{font-size:10px;color:#aeb2c0;margin:0 0 5px;line-height:1.3}#rd-cp-list button,#rd-cp-list a{font-size:10px;border:1px solid #555b87;background:#202542;color:#fff;border-radius:6px;padding:4px 7px;text-decoration:none;cursor:pointer;margin-right:4px}#rd-cp-frame{width:100%;height:250px;border:0;background:#000;display:none}#rd-cp-video{width:100%;max-height:280px;background:#000;display:none}#rd-cp-note{font-size:10px;color:#9ea5b7;padding:8px 10px;line-height:1.35}";
       document.head.appendChild(style);
     }
     var panel = document.getElementById("rd-cp");
     if (!panel) {
       panel = document.createElement("section");
       panel.id = "rd-cp";
-      panel.innerHTML = '<div id="rd-cp-head"><span id="rd-cp-title">CisyPi Media</span><button id="rd-cp-close" type="button">×</button></div><div id="rd-cp-list"></div><iframe id="rd-cp-frame" allow="autoplay; fullscreen" allowfullscreen></iframe><div id="rd-cp-note">Metadata dari katalog publik CisyPi. Playback memakai official source embed; RD tidak mengunduh atau menyalin video.</div>';
+      panel.innerHTML = '<div id="rd-cp-head"><span id="rd-cp-title">CisyPi Media</span><button id="rd-cp-close" type="button">×</button></div><div id="rd-cp-list"></div><video id="rd-cp-video" controls playsinline preload="metadata"></video><iframe id="rd-cp-frame" allow="autoplay; fullscreen" allowfullscreen></iframe><div id="rd-cp-note">Metadata dari katalog publik CisyPi. Playback memakai official source embed; RD tidak mengunduh atau menyalin video.</div>';
       document.body.appendChild(panel);
       document.getElementById("rd-cp-close").onclick = function () { panel.classList.remove("show"); document.getElementById("rd-cp-frame").src = "about:blank"; };
     }
     return panel;
   }
   function openItem(item) {
-    var panel = ensureUi(), frame = document.getElementById("rd-cp-frame"), list = document.getElementById("rd-cp-list");
-    var url = item.embedUrl || item.sourceUrl;
+    var panel = ensureUi(), frame = document.getElementById("rd-cp-frame"), video = document.getElementById("rd-cp-video"), list = document.getElementById("rd-cp-list");
+    var url = item.playUrl || item.embedUrl || item.sourceUrl;
     if (!url) { if (typeof showToast === "function") showToast("Video CisyPi belum punya source aktif", "error"); return false; }
-    frame.src = url;
-    frame.style.display = "block";
+    frame.src = "about:blank"; frame.style.display = "none";
+    video.style.display = "none"; video.removeAttribute("src");
+    if (item.playUrl) {
+      video.src = item.playUrl; video.style.display = "block";
+      video.onerror = function () { video.style.display = "none"; if (item.embedUrl) { frame.src = item.embedUrl; frame.style.display = "block"; } };
+      video.play().catch(function () {});
+    } else { frame.src = url; frame.style.display = "block"; }
     list.style.display = "none";
     document.getElementById("rd-cp-title").textContent = item.title || "CisyPi video";
     panel.classList.add("show");
@@ -44,8 +49,8 @@
     var data = await r.json().catch(function () { return {}; });
     if (!r.ok) throw new Error(data.error || "CisyPi catalog HTTP " + r.status);
     var items = Array.isArray(data.items) ? data.items : [];
-    var panel = ensureUi(), list = document.getElementById("rd-cp-list"), frame = document.getElementById("rd-cp-frame");
-    frame.style.display = "none"; frame.src = "about:blank"; list.style.display = "block";
+    var panel = ensureUi(), list = document.getElementById("rd-cp-list"), frame = document.getElementById("rd-cp-frame"), video = document.getElementById("rd-cp-video");
+    frame.style.display = "none"; frame.src = "about:blank"; video.style.display = "none"; video.removeAttribute("src"); list.style.display = "block";
     document.getElementById("rd-cp-title").textContent = "CisyPi · " + query;
     if (!items.length) { list.innerHTML = '<p style="padding:12px;color:#aaa">Tidak ada video CisyPi yang cocok.</p>'; panel.classList.add("show"); return "Tidak ada video CisyPi untuk: " + query; }
     list.innerHTML = items.map(function (item, i) {
