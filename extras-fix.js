@@ -1,4 +1,4 @@
-/* RolxDesk extras-fix v6.8.1 — restored; Google direct + hosted */
+/* RolxDesk extras-fix v7.0.0 — restored; Google direct + hosted */
 (function () {
   if (window.__RD_FIX_V681__) return;
   window.__RD_FIX_V681__ = true;
@@ -26,11 +26,17 @@
     if (!el) {
       el = document.createElement("div");
       el.id = "rd-patch-ver";
-      el.style.cssText = "font-size:11px;color:#7c6af7;margin:8px 0 4px;padding:0 4px;opacity:.9";
-      var host = document.getElementById("settingsBody") || document.getElementById("settingsPanel") || document.querySelector(".settings-body");
-      if (host) host.insertBefore(el, host.firstChild); else return;
+      el.style.cssText = "font-size:12px;color:#9b8cff;margin:16px 0 8px;padding:10px 12px;opacity:.95;border-top:1px solid rgba(255,255,255,.08);text-align:center;letter-spacing:.02em";
+      var host =
+        document.querySelector("#settingsModal .modal-body") ||
+        document.querySelector("#settingsModal .modal-content") ||
+        document.getElementById("settingsBody") ||
+        document.querySelector(".modal-body");
+      if (!host) return;
+      host.appendChild(el);
     }
-    el.textContent = "RolxDesk patch v6.8.1 · restored";
+    el.textContent = "RolxDesk patch v7.0.0 · voice/season";
+    el.setAttribute("data-rd-patch", "7.0.0");
   }
   function currentFamily() {
     try { var el = document.getElementById("familySelect"); return el ? String(el.value || "") : ""; } catch (e) { return ""; }
