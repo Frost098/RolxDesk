@@ -5,31 +5,26 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <meta name="theme-color" content="#7c6af7"/>
 <meta name="mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
 <title>RolxDesk</title>
 <link rel="manifest" href="/manifest.webmanifest"/>
 <link rel="icon" href="data:,"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple-system,sans-serif}
-#rd-boot{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% 45%,#12141a 0%,#070708 70%);overflow:hidden}
-.rd-mark{display:flex;align-items:flex-end;gap:.06em;user-select:none;position:relative;z-index:4}
-.rd-letter{font-weight:800;font-size:clamp(64px,18vw,120px);line-height:1;letter-spacing:-.04em;color:#f4f4f6;transform:scale(0);opacity:0}
+html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,sans-serif}
+#rd-boot{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% 45%,#12141a 0%,#070708 70%)}
+.rd-letter{font-weight:800;font-size:clamp(64px,18vw,120px);line-height:1;color:#f4f4f6;transform:scale(0);opacity:0}
 .rd-letter.r{animation:rdSlamR .65s cubic-bezier(.15,1.5,.35,1) .05s forwards}
 .rd-letter.d{animation:rdSlamD .65s cubic-bezier(.15,1.5,.35,1) .2s forwards}
-@keyframes rdSlamR{0%{transform:scale(0) rotate(-20deg) translateY(-48px);opacity:0}50%{transform:scale(1.22) rotate(6deg);opacity:1}75%{transform:scale(.92)}100%{transform:scale(1);opacity:1}}
-@keyframes rdSlamD{0%{transform:scale(0) rotate(18deg) translateY(48px);opacity:0}50%{transform:scale(1.2) rotate(-5deg);opacity:1}75%{transform:scale(.93)}100%{transform:scale(1);opacity:1}}
-.rd-flash{position:absolute;width:min(300px,70vw);height:min(300px,70vw);border-radius:50%;opacity:0;pointer-events:none;animation:rdFlash .75s ease-out .25s forwards;z-index:2;background:radial-gradient(circle,rgba(124,106,247,.55) 0%,transparent 70%)}
-@keyframes rdFlash{0%{transform:scale(.2);opacity:0}40%{opacity:.85}100%{transform:scale(1.8);opacity:0}}
-#rd-boot-status{margin-top:28px;font-size:13px;color:#8b8b98;text-align:center;padding:0 16px;position:relative;z-index:4}
-#rd-boot-bar{margin-top:14px;width:min(200px,50vw);height:3px;border-radius:2px;background:#1c1c24;overflow:hidden;position:relative;z-index:4}
-#rd-boot-bar>i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#7c6af7,#1a7f64);transition:width .22s ease}
+@keyframes rdSlamR{0%{transform:scale(0) rotate(-20deg);opacity:0}50%{transform:scale(1.22);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes rdSlamD{0%{transform:scale(0) rotate(18deg);opacity:0}50%{transform:scale(1.2);opacity:1}100%{transform:scale(1);opacity:1}}
+#rd-boot-status{margin-top:28px;font-size:13px;color:#8b8b98}
+#rd-boot-bar{margin-top:14px;width:min(200px,50vw);height:3px;border-radius:2px;background:#1c1c24;overflow:hidden}
+#rd-boot-bar>i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#7c6af7,#1a7f64);transition:width .22s}
 </style>
 </head>
 <body>
 <div id="rd-boot">
-  <div class="rd-flash" aria-hidden="true"></div>
-  <div class="rd-mark" aria-label="RolxDesk"><span class="rd-letter r">R</span><span class="rd-letter d">D</span></div>
+  <div><span class="rd-letter r">R</span><span class="rd-letter d">D</span></div>
   <div id="rd-boot-status">Memuat…</div>
   <div id="rd-boot-bar"><i id="rd-boot-fill"></i></div>
 </div>
@@ -41,28 +36,15 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
   if("serviceWorker" in navigator){try{navigator.serviceWorker.register("/sw.js")}catch(e){}}
   try{
     var n=8,b64="";
-    for(var i=0;i<n;i++){status("Modul "+(i+1)+"/"+n);progress((i/n)*80);var r=await fetch("./ui.p"+i+".b64?v="+Date.now());if(!r.ok)throw new Error("Gagal muat ui.p"+i);var chunk=(await r.text()).replace(/\s+/g,"");if(!chunk||!/^[A-Za-z0-9+/]+=*$/.test(chunk))throw new Error("ui.p"+i+" invalid");b64+=chunk}
-    progress(85);status("Decode…");if(b64.length%4!==0)b64+="=".repeat((4-b64.length%4)%4);
+    for(var i=0;i<n;i++){status("Modul "+(i+1)+"/"+n);progress((i/n)*80);var r=await fetch("./ui.p"+i+".b64?v="+Date.now());if(!r.ok)throw new Error("ui.p"+i);var chunk=(await r.text()).replace(/\s+/g,"");b64+=chunk}
+    if(b64.length%4!==0)b64+="=".repeat((4-b64.length%4)%4);
     var raw=atob(b64),bin=new Uint8Array(raw.length);for(var j=0;j<raw.length;j++)bin[j]=raw.charCodeAt(j);
-    progress(90);status("Inflate…");var html=await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
-    progress(95);status("Render…");
+    var html=await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
     html=html.replace(/<script[^>]*(extras(?:-ui|-fix|-hotfix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi,"");
-    html=html.replace(/<\/body>/i,
-      '<script src="./extras.js?v=109"><\/script>'+
-      '<script src="./extras-ui.js?v=109"><\/script>'+
-      '<script src="./extras-fix.js?v=109"><\/script>'+
-      '<script src="./extras-hotfix.js?v=109"><\/script>'+
-      '<script src="./extras-cisypi.js?v=109"><\/script>'+
-      '<script src="./extras-v11.js?v=109"><\/script>'+
-      '<script src="./extras-v12.js?v=109"><\/script>'+
-      '<script src="./extras-voice.js?v=109"><\/script>'+
-      '<script src="./extras-voice-mobile.js?v=109"><\/script>'+
-      '<script src="./extras-season.js?v=109"><\/script>'+
-      '<script src="./extras-cool.js?v=109"><\/script>'+
-      '<script src="./extras-mobile-secret.js?v=109"><\/script></body>');
-    var wait=Math.max(0,900-(Date.now()-t0));await new Promise(function(res){setTimeout(res,wait)});
+    html=html.replace(/<\/body>/i,'<script src="./extras.js?v=110"><\/script><script src="./extras-ui.js?v=110"><\/script><script src="./extras-fix.js?v=110"><\/script><script src="./extras-hotfix.js?v=110"><\/script><script src="./extras-cisypi.js?v=110"><\/script><script src="./extras-v11.js?v=110"><\/script><script src="./extras-v12.js?v=110"><\/script><script src="./extras-voice.js?v=110"><\/script><script src="./extras-voice-mobile.js?v=110"><\/script><script src="./extras-season.js?v=110"><\/script><script src="./extras-cool.js?v=110"><\/script><script src="./extras-mobile-secret.js?v=110"><\/script><script src="./extras-fun-tools.js?v=110"><\/script></body>');
+    await new Promise(function(res){setTimeout(res,Math.max(0,800-(Date.now()-t0)))});
     progress(100);document.open();document.write(html);document.close();
-  }catch(err){status("Gagal: "+(err&&err.message?err.message:err));progress(100);console.error(err)}
+  }catch(err){status("Gagal: "+(err&&err.message?err.message:err));console.error(err)}
 })();
 </script>
 </body>
