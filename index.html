@@ -9,42 +9,67 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple-system,sans-serif}
 #rd-boot{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% 45%,#12141a 0%,#070708 70%);overflow:hidden}
-.rd-mark{display:flex;align-items:flex-end;gap:.06em;user-select:none;position:relative;z-index:3}
-.rd-letter{font-weight:800;font-size:clamp(64px,18vw,120px);line-height:1;letter-spacing:-.04em;color:#f4f4f6;text-shadow:0 0 40px rgba(124,106,247,.4);transform:scale(0);opacity:0}
+.rd-mark{display:flex;align-items:flex-end;gap:.06em;user-select:none;position:relative;z-index:4}
+.rd-letter{font-weight:800;font-size:clamp(64px,18vw,120px);line-height:1;letter-spacing:-.04em;color:#f4f4f6;transform:scale(0);opacity:0}
 .rd-letter.r{animation:rdSlamR .65s cubic-bezier(.15,1.5,.35,1) .05s forwards}
 .rd-letter.d{animation:rdSlamD .65s cubic-bezier(.15,1.5,.35,1) .2s forwards}
 @keyframes rdSlamR{0%{transform:scale(0) rotate(-20deg) translateY(-48px);opacity:0}50%{transform:scale(1.22) rotate(6deg);opacity:1}75%{transform:scale(.92) rotate(-2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
 @keyframes rdSlamD{0%{transform:scale(0) rotate(18deg) translateY(48px);opacity:0}50%{transform:scale(1.2) rotate(-5deg);opacity:1}75%{transform:scale(.93) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
-body.boot-impact .rd-letter.r{animation-name:rdImpactR}
-body.boot-impact .rd-letter.d{animation-name:rdImpactD}
-@keyframes rdImpactR{0%{transform:scale(0) translateX(-70px);opacity:0;filter:blur(10px)}55%{transform:scale(1.28) translateX(6px);opacity:1;filter:blur(0)}100%{transform:scale(1);opacity:1}}
-@keyframes rdImpactD{0%{transform:scale(0) translateX(70px);opacity:0;filter:blur(10px)}55%{transform:scale(1.28) translateX(-6px);opacity:1;filter:blur(0)}100%{transform:scale(1);opacity:1}}
-body.boot-pulse .rd-letter.r{animation-name:rdPulseR}
-body.boot-pulse .rd-letter.d{animation-name:rdPulseD}
-@keyframes rdPulseR{0%{transform:scale(0);opacity:0}40%{transform:scale(1.4);opacity:1}60%{transform:scale(.85)}100%{transform:scale(1)}}
-@keyframes rdPulseD{0%{transform:scale(0);opacity:0}40%{transform:scale(1.4);opacity:1}60%{transform:scale(.85)}100%{transform:scale(1)}}
-body.boot-spin .rd-letter.r{animation-name:rdSpinR}
-body.boot-spin .rd-letter.d{animation-name:rdSpinD}
-@keyframes rdSpinR{0%{transform:scale(0) rotate(-180deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
-@keyframes rdSpinD{0%{transform:scale(0) rotate(180deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
-.rd-flash{position:absolute;width:min(300px,72vw);height:min(300px,72vw);border-radius:50%;opacity:0;pointer-events:none;animation:rdFlash .75s ease-out .28s forwards;z-index:1}
-@keyframes rdFlash{0%{transform:scale(.2);opacity:0}40%{opacity:.85}100%{transform:scale(1.85);opacity:0}}
-.rd-ring{position:absolute;width:min(220px,55vw);height:min(220px,55vw);border-radius:50%;border:2px solid rgba(255,255,255,.18);opacity:0;pointer-events:none;z-index:1;animation:rdRing .85s ease-out .32s forwards}
-@keyframes rdRing{0%{transform:scale(.25);opacity:0}40%{opacity:.55}100%{transform:scale(1.7);opacity:0}}
-.rd-shock{position:absolute;width:150px;height:3px;border-radius:2px;opacity:0;pointer-events:none;z-index:1;animation:rdShock .42s ease-out .4s forwards}
-@keyframes rdShock{0%{transform:scaleX(.1);opacity:0}45%{opacity:1;transform:scaleX(1.7)}100%{opacity:0;transform:scaleX(2.3)}}
-#rd-boot-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.55}
-#rd-boot-fx{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:hidden}
-#rd-boot-fx span{position:absolute;border-radius:50%;opacity:.2;animation:rdBootFloat 8s linear infinite}
-@keyframes rdBootFloat{0%{transform:translateY(110%) scale(.5);opacity:0}15%{opacity:.22}85%{opacity:.1}100%{transform:translateY(-15%) scale(1);opacity:0}}
-#rd-boot-status{margin-top:28px;font-size:13px;color:#8b8b98;letter-spacing:.03em;min-height:1.2em;text-align:center;padding:0 16px;position:relative;z-index:3}
-#rd-boot-bar{margin-top:14px;width:min(200px,50vw);height:3px;border-radius:2px;background:#1c1c24;overflow:hidden;position:relative;z-index:3}
+body.boot-impact .rd-letter.r{animation-name:rdImpactR}body.boot-impact .rd-letter.d{animation-name:rdImpactD}
+@keyframes rdImpactR{0%{transform:scale(0) translateX(-80px);opacity:0;filter:blur(12px)}50%{transform:scale(1.32) translateX(8px);opacity:1;filter:blur(0)}100%{transform:scale(1)}}
+@keyframes rdImpactD{0%{transform:scale(0) translateX(80px);opacity:0;filter:blur(12px)}50%{transform:scale(1.32) translateX(-8px);opacity:1;filter:blur(0)}100%{transform:scale(1)}}
+body.boot-pulse .rd-letter.r{animation-name:rdPulseR}body.boot-pulse .rd-letter.d{animation-name:rdPulseD}
+@keyframes rdPulseR{0%{transform:scale(0);opacity:0}35%{transform:scale(1.45);opacity:1}55%{transform:scale(.82)}75%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes rdPulseD{0%{transform:scale(0);opacity:0}35%{transform:scale(1.45);opacity:1}55%{transform:scale(.82)}75%{transform:scale(1.12)}100%{transform:scale(1)}}
+body.boot-spin .rd-letter.r{animation-name:rdSpinR}body.boot-spin .rd-letter.d{animation-name:rdSpinD}
+@keyframes rdSpinR{0%{transform:scale(0) rotate(-200deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes rdSpinD{0%{transform:scale(0) rotate(200deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+body.boot-drop .rd-letter.r{animation-name:rdDropR}body.boot-drop .rd-letter.d{animation-name:rdDropD}
+@keyframes rdDropR{0%{transform:translateY(-120px) scale(.6);opacity:0}60%{transform:translateY(12px) scale(1.08);opacity:1}80%{transform:translateY(-6px)}100%{transform:translateY(0) scale(1)}}
+@keyframes rdDropD{0%{transform:translateY(-120px) scale(.6);opacity:0}60%{transform:translateY(12px) scale(1.08);opacity:1}80%{transform:translateY(-6px)}100%{transform:translateY(0) scale(1)}}
+body.boot-glitch .rd-letter.r{animation-name:rdGlitchR}body.boot-glitch .rd-letter.d{animation-name:rdGlitchD}
+@keyframes rdGlitchR{0%{transform:scale(0);opacity:0;clip-path:inset(0 100% 0 0)}40%{transform:scale(1.1) translateX(-6px);opacity:1;clip-path:inset(0 0 0 0)}55%{transform:translateX(4px) skewX(4deg)}100%{transform:scale(1)}}
+@keyframes rdGlitchD{0%{transform:scale(0);opacity:0;clip-path:inset(0 0 0 100%)}40%{transform:scale(1.1) translateX(6px);opacity:1;clip-path:inset(0 0 0 0)}55%{transform:translateX(-4px) skewX(-4deg)}100%{transform:scale(1)}}
+body.boot-rise .rd-letter.r{animation-name:rdRiseR}body.boot-rise .rd-letter.d{animation-name:rdRiseD}
+@keyframes rdRiseR{0%{transform:translateY(100px) scale(.5);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes rdRiseD{0%{transform:translateY(100px) scale(.5);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+.rd-flash{position:absolute;width:min(320px,75vw);height:min(320px,75vw);border-radius:50%;opacity:0;pointer-events:none;animation:rdFlash .8s ease-out .25s forwards;z-index:2}
+@keyframes rdFlash{0%{transform:scale(.15);opacity:0}35%{opacity:.9}100%{transform:scale(2);opacity:0}}
+.rd-ring{position:absolute;width:min(240px,58vw);height:min(240px,58vw);border-radius:50%;border:2px solid rgba(255,255,255,.2);opacity:0;pointer-events:none;z-index:2;animation:rdRing .9s ease-out .3s forwards}
+@keyframes rdRing{0%{transform:scale(.2);opacity:0}40%{opacity:.6}100%{transform:scale(1.8);opacity:0}}
+.rd-shock{position:absolute;width:160px;height:3px;border-radius:2px;opacity:0;pointer-events:none;z-index:2;animation:rdShock .45s ease-out .38s forwards}
+@keyframes rdShock{0%{transform:scaleX(.08);opacity:0}40%{opacity:1;transform:scaleX(1.8)}100%{opacity:0;transform:scaleX(2.5)}}
+#rd-boot-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;opacity:.6}
+#rd-boot-fx{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+#rd-boot-fx .p{position:absolute;opacity:0}
+#rd-boot-fx .snow{width:6px;height:6px;border-radius:50%;background:#fff;animation:fxSnow 5s linear infinite}
+@keyframes fxSnow{0%{transform:translateY(-10vh) rotate(0);opacity:0}10%{opacity:.7}100%{transform:translateY(110vh) rotate(360deg);opacity:.15}}
+#rd-boot-fx .aurora{height:40%;width:120%;left:-10%;border-radius:40%;filter:blur(28px);animation:fxAurora 4s ease-in-out infinite alternate}
+@keyframes fxAurora{0%{transform:translateY(20%) scaleX(.8);opacity:.15}100%{transform:translateY(-10%) scaleX(1.1);opacity:.4}}
+#rd-boot-fx .lantern{width:14px;height:20px;border-radius:4px 4px 6px 6px;animation:fxLantern 6s ease-in-out infinite}
+@keyframes fxLantern{0%{transform:translateY(100vh) scale(.6);opacity:0}15%{opacity:.8}50%{transform:translateY(40vh) scale(1);opacity:.9}100%{transform:translateY(-10vh) scale(.7);opacity:0}}
+#rd-boot-fx .balloon{width:18px;height:24px;border-radius:50%;animation:fxBalloon 7s ease-in infinite}
+@keyframes fxBalloon{0%{transform:translateY(110vh) scale(.5);opacity:0}20%{opacity:.85}100%{transform:translateY(-15vh) scale(1);opacity:.2}}
+#rd-boot-fx .spark{width:4px;height:4px;border-radius:1px;animation:fxSpark .9s ease-out forwards}
+@keyframes fxSpark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+#rd-boot-fx .tentacle{width:8px;height:60px;border-radius:8px;animation:fxTent 3s ease-in-out infinite}
+@keyframes fxTent{0%,100%{transform:translateY(30vh) rotate(-8deg);opacity:.2}50%{transform:translateY(20vh) rotate(8deg);opacity:.45}}
+#rd-boot-fx .star{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid #fff;animation:fxStar 3s linear infinite}
+@keyframes fxStar{0%{transform:translateY(100vh) scale(.4) rotate(0);opacity:0}20%{opacity:.9}100%{transform:translateY(-10vh) scale(1) rotate(180deg);opacity:.2}}
+#rd-boot-fx .flagbit{width:22px;height:12px;animation:fxFlag 4s linear infinite}
+@keyframes fxFlag{0%{transform:translateX(-30vw);opacity:0}20%{opacity:.7}50%{transform:translateX(20vw) skewX(12deg)}100%{transform:translateX(80vw);opacity:0}}
+#rd-boot-fx .orbit{width:10px;height:10px;border-radius:50%;animation:fxOrbit 3s linear infinite}
+@keyframes fxOrbit{0%{transform:rotate(0) translateX(50px);opacity:.8}100%{transform:rotate(360deg) translateX(50px);opacity:.8}}
+#rd-boot-fx .ringwave{width:20px;height:20px;border-radius:50%;border:2px solid;background:transparent;animation:fxRingW 2.5s ease-out infinite}
+@keyframes fxRingW{0%{transform:scale(.3);opacity:.7}100%{transform:scale(4);opacity:0}}
+#rd-boot-status{margin-top:28px;font-size:13px;color:#8b8b98;letter-spacing:.03em;min-height:1.2em;text-align:center;padding:0 16px;position:relative;z-index:4}
+#rd-boot-bar{margin-top:14px;width:min(200px,50vw);height:3px;border-radius:2px;background:#1c1c24;overflow:hidden;position:relative;z-index:4}
 #rd-boot-bar>i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#7c6af7,#1a7f64);transition:width .22s ease}
 #rd-jumpscare{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;background:#000;pointer-events:none}
 #rd-jumpscare.on{display:flex;animation:rdScare .55s ease-out forwards}
-#rd-jumpscare .face{font-size:min(40vw,180px);filter:contrast(1.4);animation:rdScareFace .55s ease-out}
-@keyframes rdScare{0%{opacity:0}15%{opacity:1}70%{opacity:1}100%{opacity:0}}
-@keyframes rdScareFace{0%{transform:scale(.3) rotate(-12deg)}40%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1.05)}}
+#rd-jumpscare .face{font-size:min(40vw,180px);filter:contrast(1.5);animation:rdScareFace .55s ease-out}
+@keyframes rdScare{0%{opacity:0}12%{opacity:1}70%{opacity:1}100%{opacity:0}}
+@keyframes rdScareFace{0%{transform:scale(.2) rotate(-15deg)}40%{transform:scale(1.3) rotate(10deg)}100%{transform:scale(1.05)}}
 </style>
 </head>
 <body>
@@ -55,158 +80,80 @@ body.boot-spin .rd-letter.d{animation-name:rdSpinD}
   <div class="rd-ring" aria-hidden="true"></div>
   <div class="rd-shock" aria-hidden="true"></div>
   <div class="rd-mark" aria-label="RolxDesk">
-    <span class="rd-letter r">R</span>
-    <span class="rd-letter d">D</span>
+    <span class="rd-letter r">R</span><span class="rd-letter d">D</span>
   </div>
   <div id="rd-boot-status">Memuat…</div>
   <div id="rd-boot-bar"><i id="rd-boot-fill"></i></div>
 </div>
 <div id="rd-jumpscare" aria-hidden="true"><div class="face">☠</div></div>
 <script>
-(async function () {
-  var statusEl = document.getElementById("rd-boot-status");
-  var fill = document.getElementById("rd-boot-fill");
-  var t0 = Date.now();
-  function status(m) { if (statusEl) statusEl.textContent = m; }
-  function progress(p) { if (fill) fill.style.width = Math.min(100, Math.max(0, p)) + "%"; }
-  var EV = [
-    {m:10,d:9,endM:10,endD:9,title:"Leif Erikson & Ultah Squidward",accent:"#2dd4bf",accent2:"#0d9488",bg:"#050a0a",panel:"#0c1616",anim:"impact",svg:"leif"},
-    {m:10,d:31,endM:11,endD:1,title:"Halloween · Scaredy Pants",accent:"#f97316",accent2:"#7c3aed",bg:"#0a0608",panel:"#140e12",anim:"pulse",svg:"halloween",scare:1},
-    {m:11,d:7,endM:11,endD:7,title:"Persaudaraan Karyawan",accent:"#4ade80",accent2:"#16a34a",bg:"#060a07",panel:"#0e1610",anim:"impact",svg:"crew"},
-    {m:12,d:24,endM:12,endD:26,title:"Natal Bikini Bottom",accent:"#ef4444",accent2:"#22c55e",bg:"#07090c",panel:"#10151a",anim:"pulse",svg:"xmas"},
-    {m:12,d:27,endM:12,endD:27,title:"Hari Balon Gratis",accent:"#60a5fa",accent2:"#a78bfa",bg:"#06080c",panel:"#0e121a",anim:"spin",svg:"balloon"},
-    {m:1,d:15,endM:1,endD:15,title:"Menjahili Squidward",accent:"#c084fc",accent2:"#7e22ce",bg:"#09060f",panel:"#130e1a",anim:"spin",svg:"squid"},
-    {m:2,d:15,endM:2,endD:15,title:"Menjahili Squidward",accent:"#c084fc",accent2:"#7e22ce",bg:"#09060f",panel:"#130e1a",anim:"spin",svg:"squid"},
-    {m:2,d:18,endM:3,endD:19,title:"Berburu Takjil",accent:"#a3e635",accent2:"#fbbf24",bg:"#070a06",panel:"#10160c",anim:"pulse",svg:"takjil",night:1},
-    {m:3,d:20,endM:3,endD:22,title:"Lebaran",accent:"#f8fafc",accent2:"#4ade80",bg:"#0a0c0a",panel:"#121816",anim:"impact",svg:"lebaran"},
-    {m:3,d:8,endM:3,endD:8,title:"Gratis Bikini Bottom",accent:"#fbbf24",accent2:"#f59e0b",bg:"#0a0805",panel:"#16120c",anim:"impact",svg:"gift"},
-    {m:6,d:8,endM:6,endD:8,title:"Sahabat Terbaik",accent:"#f472b6",accent2:"#fb923c",bg:"#0a0608",panel:"#161016",anim:"pulse",svg:"friends"},
-    {m:8,d:15,endM:8,endD:15,title:"Tanpa SpongeBob",accent:"#94a3b8",accent2:"#64748b",bg:"#080808",panel:"#121212",anim:"impact",svg:"quiet"},
-    {m:8,d:17,endM:8,endD:17,title:"Hari Kemerdekaan RI",accent:"#e11d48",accent2:"#f8fafc",bg:"#0a0608",panel:"#160e12",anim:"impact",svg:"flag",lock:1}
-  ];
-  function dn(m,d){ return m*100+d; }
-  function pickEvent() {
-    var now = new Date();
-    var mo = now.getMonth()+1, da = now.getDate(), hh = now.getHours();
-    var nowN = dn(mo, da);
-    try {
-      var raw = localStorage.getItem("rd_season_override");
-      if (raw) {
-        var o = JSON.parse(raw);
-        if (o && o.until && Date.now() < o.until && o.id && o.id !== "none") {
-          var map = { "leif-squidward":0,"halloween-bb":1,"employee-brotherhood":2,"bb-christmas":3,"free-balloon":4,"annoy-squidward":5,"annoy-squidward-feb":6,"ramadan-takjil":7,"lebaran":8,"bb-free-day":9,"best-friends":10,"no-spongebob":11,"indonesia-17agustus":12 };
-          if (map[o.id] != null) return EV[map[o.id]];
-        }
-      }
-    } catch(e){}
-    for (var i=0;i<EV.length;i++) {
-      var e = EV[i];
-      var a = dn(e.m, e.d), b = dn(e.endM||e.m, e.endD||e.d);
-      var ok = (a<=b) ? (nowN>=a && nowN<=b) : (nowN>=a || nowN<=b);
-      if (!ok) continue;
-      if (e.night && !(hh>=18 || hh<5)) continue;
-      return e;
-    }
-    return null;
-  }
-  function svgFor(kind, a1, a2) {
-    if (kind === "leif") return '<circle cx="200" cy="200" r="120" fill="none" stroke="'+a1+'" stroke-width="1.5" opacity=".25"/><path d="M80 260 Q200 80 320 260" fill="none" stroke="'+a1+'" stroke-width="2" opacity=".35"/><path d="M120 240 L200 120 L280 240" fill="none" stroke="'+a2+'" stroke-width="1.5" opacity=".3"/><circle cx="200" cy="150" r="6" fill="'+a1+'" opacity=".4"/>';
-    if (kind === "halloween") return '<circle cx="200" cy="200" r="90" fill="'+a1+'" opacity=".12"/><path d="M140 180 Q160 160 180 180 Q200 160 220 180 Q240 160 260 180" fill="none" stroke="'+a2+'" stroke-width="3" opacity=".4"/><circle cx="170" cy="200" r="8" fill="'+a1+'" opacity=".5"/><circle cx="230" cy="200" r="8" fill="'+a1+'" opacity=".5"/><path d="M170 240 Q200 270 230 240" fill="none" stroke="'+a1+'" stroke-width="3" opacity=".45"/>';
-    if (kind === "xmas") return '<polygon points="200,80 140,200 260,200" fill="'+a2+'" opacity=".2"/><polygon points="200,120 150,220 250,220" fill="'+a2+'" opacity=".25"/><rect x="190" y="220" width="20" height="40" fill="'+a1+'" opacity=".3"/><circle cx="200" cy="75" r="10" fill="'+a1+'" opacity=".5"/>';
-    if (kind === "balloon") return '<ellipse cx="200" cy="160" rx="50" ry="65" fill="'+a1+'" opacity=".2"/><path d="M200 225 Q190 280 200 320" fill="none" stroke="'+a2+'" stroke-width="2" opacity=".35"/>';
-    if (kind === "squid") return '<ellipse cx="200" cy="170" rx="55" ry="70" fill="'+a1+'" opacity=".15"/><path d="M160 230 Q150 300 140 340" fill="none" stroke="'+a2+'" stroke-width="3" opacity=".3"/><path d="M200 240 Q200 310 200 350" fill="none" stroke="'+a2+'" stroke-width="3" opacity=".3"/><path d="M240 230 Q250 300 260 340" fill="none" stroke="'+a2+'" stroke-width="3" opacity=".3"/>';
-    if (kind === "takjil" || kind === "gift") return '<rect x="150" y="150" width="100" height="80" rx="8" fill="'+a1+'" opacity=".18"/><path d="M150 180 H250" stroke="'+a2+'" stroke-width="3" opacity=".35"/><path d="M200 150 V230" stroke="'+a2+'" stroke-width="3" opacity=".35"/>';
-    if (kind === "lebaran") return '<path d="M120 220 Q200 100 280 220" fill="none" stroke="'+a1+'" stroke-width="2" opacity=".35"/><circle cx="200" cy="160" r="28" fill="none" stroke="'+a2+'" stroke-width="2" opacity=".3"/><path d="M200 100 V130" stroke="'+a1+'" stroke-width="2" opacity=".4"/>';
-    if (kind === "flag") return '<rect x="100" y="120" width="200" height="70" fill="'+a1+'" opacity=".35"/><rect x="100" y="190" width="200" height="70" fill="'+a2+'" opacity=".35"/>';
-    if (kind === "friends") return '<circle cx="170" cy="180" r="40" fill="'+a1+'" opacity=".2"/><circle cx="230" cy="180" r="40" fill="'+a2+'" opacity=".2"/>';
-    if (kind === "crew") return '<rect x="130" y="140" width="140" height="100" rx="12" fill="'+a1+'" opacity=".15"/><circle cx="200" cy="170" r="20" fill="'+a2+'" opacity=".25"/>';
-    if (kind === "quiet") return '<circle cx="200" cy="200" r="80" fill="none" stroke="'+a1+'" stroke-width="2" opacity=".2"/><path d="M160 200 H240" stroke="'+a1+'" stroke-width="4" opacity=".35"/>';
-    return '<circle cx="200" cy="200" r="100" fill="none" stroke="'+a1+'" stroke-width="1" opacity=".2"/>';
-  }
-  try {
-    var hit = pickEvent();
-    if (hit) {
-      var boot = document.getElementById("rd-boot");
-      if (boot) boot.style.background = "radial-gradient(ellipse 80% 60% at 50% 45%," + hit.panel + " 0%," + hit.bg + " 72%)";
-      var lr = document.querySelector(".rd-letter.r");
-      var ld = document.querySelector(".rd-letter.d");
-      if (lr) { lr.textContent = "R"; lr.style.color = hit.lock ? "#e11d48" : "#f8fafc"; lr.style.textShadow = "0 0 48px " + hit.accent + "cc, 0 0 12px " + hit.accent; }
-      if (ld) { ld.textContent = "D"; ld.style.color = "#f8fafc"; ld.style.textShadow = "0 0 48px " + hit.accent2 + "cc, 0 0 12px " + hit.accent2; }
-      if (hit.anim === "impact") document.body.classList.add("boot-impact");
-      if (hit.anim === "pulse") document.body.classList.add("boot-pulse");
-      if (hit.anim === "spin") document.body.classList.add("boot-spin");
-      var flash = document.querySelector(".rd-flash");
-      if (flash) flash.style.background = "radial-gradient(circle," + hit.accent + "88 0%,transparent 70%)";
-      var shock = document.querySelector(".rd-shock");
-      if (shock) shock.style.background = "linear-gradient(90deg,transparent," + hit.accent + ",transparent)";
-      var ring = document.querySelector(".rd-ring");
-      if (ring) ring.style.borderColor = hit.accent + "66";
-      var svg = document.getElementById("rd-boot-svg");
-      if (svg) svg.innerHTML = svgFor(hit.svg, hit.accent, hit.accent2);
-      status(hit.title);
-      var fx = document.getElementById("rd-boot-fx");
-      if (fx) {
-        for (var k=0;k<14;k++) {
-          var sp = document.createElement("span");
-          sp.style.left = (Math.random()*100) + "%";
-          sp.style.background = k % 2 ? hit.accent : hit.accent2;
-          sp.style.animationDelay = (Math.random()*7) + "s";
-          var sz = 4 + Math.random()*10;
-          sp.style.width = sz + "px"; sp.style.height = sz + "px";
-          fx.appendChild(sp);
-        }
-      }
-      if (fill) fill.style.background = "linear-gradient(90deg," + hit.accent + "," + hit.accent2 + ")";
-      if (hit.scare && Math.random() < 0.35) {
-        setTimeout(function () {
-          var j = document.getElementById("rd-jumpscare");
-          if (j) { j.classList.add("on"); setTimeout(function () { j.classList.remove("on"); }, 600); }
-        }, 400);
-      }
-    }
-  } catch (eSea) {}
-  try {
-    var n = 8, b64 = "";
-    for (var i = 0; i < n; i++) {
-      status("Modul " + (i + 1) + "/" + n);
-      progress((i / n) * 80);
-      var r = await fetch("./ui.p" + i + ".b64?v=" + Date.now());
-      if (!r.ok) throw new Error("Gagal muat ui.p" + i + ".b64 (HTTP " + r.status + ")");
-      var chunk = (await r.text()).replace(/\s+/g, "");
-      if (!chunk) throw new Error("ui.p" + i + ".b64 kosong");
-      if (!/^[A-Za-z0-9+/]+=*$/.test(chunk)) throw new Error("ui.p" + i + ".b64 bukan base64 valid");
-      b64 += chunk;
-    }
-    progress(85); status("Decode…");
-    if (b64.length % 4 !== 0) b64 += "=".repeat((4 - (b64.length % 4)) % 4);
-    var raw = atob(b64);
-    var bin = new Uint8Array(raw.length);
-    for (var j = 0; j < raw.length; j++) bin[j] = raw.charCodeAt(j);
-    progress(90); status("Inflate…");
-    var ds = new DecompressionStream("gzip");
-    var stream = new Blob([bin]).stream().pipeThrough(ds);
-    var html = await new Response(stream).text();
-    progress(95); status("Render…");
-    html = html.replace(/<script[^>]*(extras(?:-ui|-fix|-hotfix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi, "");
-    html = html.replace(/<\/body>/i,
-      '<script src="./extras.js?v=106"><\/script>' +
-      '<script src="./extras-ui.js?v=106"><\/script>' +
-      '<script src="./extras-fix.js?v=106"><\/script>' +
-      '<script src="./extras-hotfix.js?v=106"><\/script>' +
-      '<script src="./extras-cisypi.js?v=106"><\/script>' +
-      '<script src="./extras-v11.js?v=106"><\/script>' +
-      '<script src="./extras-v12.js?v=106"><\/script>' +
-      '<script src="./extras-voice.js?v=106"><\/script>' +
-      '<script src="./extras-voice-mobile.js?v=106"><\/script>' +
-      '<script src="./extras-season.js?v=106"><\/script></body>');
-    var wait = Math.max(0, 1000 - (Date.now() - t0));
-    await new Promise(function (res) { setTimeout(res, wait); });
-    progress(100);
-    document.open(); document.write(html); document.close();
-  } catch (err) {
-    status("Gagal: " + (err && err.message ? err.message : err));
-    progress(100); console.error(err);
-  }
+(async function(){
+var statusEl=document.getElementById("rd-boot-status"),fill=document.getElementById("rd-boot-fill"),t0=Date.now();
+function status(m){if(statusEl)statusEl.textContent=m}
+function progress(p){if(fill)fill.style.width=Math.min(100,Math.max(0,p))+"%"}
+var EV=[
+{m:10,d:9,endM:10,endD:9,title:"Leif Erikson & Ultah Squidward",accent:"#2dd4bf",accent2:"#0d9488",bg:"#050a0a",panel:"#0c1616",anim:"impact",svg:"leif",fx:"aurora"},
+{m:10,d:31,endM:11,endD:1,title:"Halloween · Scaredy Pants",accent:"#f97316",accent2:"#7c3aed",bg:"#0a0608",panel:"#140e12",anim:"pulse",svg:"halloween",fx:"spark",scare:1},
+{m:11,d:7,endM:11,endD:7,title:"Persaudaraan Karyawan",accent:"#4ade80",accent2:"#16a34a",bg:"#060a07",panel:"#0e1610",anim:"impact",svg:"crew",fx:"orbit"},
+{m:12,d:24,endM:12,endD:26,title:"Natal Bikini Bottom",accent:"#ef4444",accent2:"#22c55e",bg:"#07090c",panel:"#10151a",anim:"drop",svg:"xmas",fx:"snow"},
+{m:12,d:27,endM:12,endD:27,title:"Hari Balon Gratis",accent:"#60a5fa",accent2:"#a78bfa",bg:"#06080c",panel:"#0e121a",anim:"rise",svg:"balloon",fx:"balloon"},
+{m:1,d:15,endM:1,endD:15,title:"Menjahili Squidward",accent:"#c084fc",accent2:"#7e22ce",bg:"#09060f",panel:"#130e1a",anim:"spin",svg:"squid",fx:"tentacle"},
+{m:2,d:15,endM:2,endD:15,title:"Menjahili Squidward",accent:"#c084fc",accent2:"#7e22ce",bg:"#09060f",panel:"#130e1a",anim:"spin",svg:"squid",fx:"tentacle"},
+{m:2,d:18,endM:3,endD:19,title:"Berburu Takjil",accent:"#a3e635",accent2:"#fbbf24",bg:"#070a06",panel:"#10160c",anim:"rise",svg:"takjil",fx:"lantern",night:1},
+{m:3,d:20,endM:3,endD:22,title:"Lebaran",accent:"#f8fafc",accent2:"#4ade80",bg:"#0a0c0a",panel:"#121816",anim:"drop",svg:"lebaran",fx:"star"},
+{m:3,d:8,endM:3,endD:8,title:"Gratis Bikini Bottom",accent:"#fbbf24",accent2:"#f59e0b",bg:"#0a0805",panel:"#16120c",anim:"pulse",svg:"gift",fx:"spark"},
+{m:6,d:8,endM:6,endD:8,title:"Sahabat Terbaik",accent:"#f472b6",accent2:"#fb923c",bg:"#0a0608",panel:"#161016",anim:"spin",svg:"friends",fx:"orbit"},
+{m:8,d:15,endM:8,endD:15,title:"Tanpa SpongeBob",accent:"#94a3b8",accent2:"#64748b",bg:"#080808",panel:"#121212",anim:"glitch",svg:"quiet",fx:"ringwave"},
+{m:8,d:17,endM:8,endD:17,title:"Hari Kemerdekaan RI",accent:"#e11d48",accent2:"#f8fafc",bg:"#0a0608",panel:"#160e12",anim:"impact",svg:"flag",fx:"flagbit",lock:1}
+];
+function dn(m,d){return m*100+d}
+function pickEvent(){var now=new Date(),mo=now.getMonth()+1,da=now.getDate(),hh=now.getHours(),nowN=dn(mo,da);
+try{var raw=localStorage.getItem("rd_season_override");if(raw){var o=JSON.parse(raw);if(o&&o.until&&Date.now()<o.until&&o.id&&o.id!=="none"){var map={"leif-squidward":0,"halloween-bb":1,"employee-brotherhood":2,"bb-christmas":3,"free-balloon":4,"annoy-squidward":5,"annoy-squidward-feb":6,"ramadan-takjil":7,"lebaran":8,"bb-free-day":9,"best-friends":10,"no-spongebob":11,"indonesia-17agustus":12};if(map[o.id]!=null)return EV[map[o.id]]}}}catch(e){}
+for(var i=0;i<EV.length;i++){var e=EV[i],a=dn(e.m,e.d),b=dn(e.endM||e.m,e.endD||e.d),ok=(a<=b)?(nowN>=a&&nowN<=b):(nowN>=a||nowN<=b);if(!ok)continue;if(e.night&&!(hh>=18||hh<5))continue;return e}return null}
+function svgFor(k,a1,a2){
+if(k==="leif")return '<ellipse cx="200" cy="280" rx="160" ry="40" fill="'+a1+'" opacity=".12"/><path d="M70 250 Q200 60 330 250" fill="none" stroke="'+a1+'" stroke-width="2.5" opacity=".4"/><path d="M110 230 L200 100 L290 230" fill="none" stroke="'+a2+'" stroke-width="1.8" opacity=".35"/>';
+if(k==="halloween")return '<circle cx="200" cy="200" r="95" fill="'+a1+'" opacity=".14"/><path d="M135 175 Q155 150 175 175 Q200 150 225 175 Q245 150 265 175" fill="none" stroke="'+a2+'" stroke-width="3.5" opacity=".45"/><circle cx="168" cy="205" r="9" fill="'+a1+'" opacity=".55"/><circle cx="232" cy="205" r="9" fill="'+a1+'" opacity=".55"/><path d="M165 245 Q200 280 235 245" fill="none" stroke="'+a1+'" stroke-width="3.5" opacity=".5"/>';
+if(k==="xmas")return '<polygon points="200,70 130,195 270,195" fill="'+a2+'" opacity=".22"/><polygon points="200,115 145,220 255,220" fill="'+a2+'" opacity=".28"/><rect x="188" y="220" width="24" height="45" fill="'+a1+'" opacity=".35"/>';
+if(k==="balloon")return '<ellipse cx="200" cy="155" rx="55" ry="70" fill="'+a1+'" opacity=".22"/><path d="M200 225 Q185 290 200 340" fill="none" stroke="'+a2+'" stroke-width="2" opacity=".4"/>';
+if(k==="squid")return '<ellipse cx="200" cy="165" rx="60" ry="75" fill="'+a1+'" opacity=".16"/><path d="M155 230 Q140 310 130 360" fill="none" stroke="'+a2+'" stroke-width="4" opacity=".35"/><path d="M200 245 Q200 320 200 370" fill="none" stroke="'+a2+'" stroke-width="4" opacity=".35"/><path d="M245 230 Q260 310 270 360" fill="none" stroke="'+a2+'" stroke-width="4" opacity=".35"/>';
+if(k==="takjil"||k==="gift")return '<rect x="145" y="145" width="110" height="90" rx="10" fill="'+a1+'" opacity=".2"/><path d="M145 175 H255" stroke="'+a2+'" stroke-width="4" opacity=".4"/><path d="M200 145 V235" stroke="'+a2+'" stroke-width="4" opacity=".4"/>';
+if(k==="lebaran")return '<path d="M110 230 Q200 90 290 230" fill="none" stroke="'+a1+'" stroke-width="2.5" opacity=".4"/><circle cx="200" cy="155" r="32" fill="none" stroke="'+a2+'" stroke-width="2.5" opacity=".35"/>';
+if(k==="flag")return '<rect x="90" y="115" width="220" height="75" fill="'+a1+'" opacity=".4"/><rect x="90" y="190" width="220" height="75" fill="'+a2+'" opacity=".4"/>';
+if(k==="friends")return '<circle cx="165" cy="180" r="45" fill="'+a1+'" opacity=".22"/><circle cx="235" cy="180" r="45" fill="'+a2+'" opacity=".22"/>';
+if(k==="crew")return '<rect x="120" y="130" width="160" height="120" rx="14" fill="'+a1+'" opacity=".16"/><circle cx="200" cy="175" r="24" fill="'+a2+'" opacity=".28"/>';
+if(k==="quiet")return '<circle cx="200" cy="200" r="90" fill="none" stroke="'+a1+'" stroke-width="2" opacity=".22"/><path d="M150 200 H250" stroke="'+a1+'" stroke-width="5" opacity=".4"/>';
+return''}
+function spawnFx(type,a1,a2){var fx=document.getElementById("rd-boot-fx");if(!fx)return;fx.innerHTML="";var n=type==="spark"?18:(type==="aurora"?4:12);
+for(var i=0;i<n;i++){var el=document.createElement("div");el.className="p "+type;el.style.left=(Math.random()*100)+"%";el.style.animationDelay=(Math.random()*3)+"s";
+var col=i%2?a1:a2;
+if(type==="snow"||type==="star")el.style.background=col;
+else if(type==="aurora"){el.style.background=col;el.style.width="70%";el.style.top=(20+Math.random()*40)+"%"}
+else if(type==="lantern"||type==="balloon"||type==="tentacle")el.style.background=col;
+else if(type==="flagbit")el.style.background=i%2?a1:a2;
+else if(type==="orbit"){el.style.background=col;el.style.left="50%";el.style.top="45%";el.style.animationDelay=(i*.25)+"s"}
+else if(type==="ringwave"){el.style.borderColor=col;el.style.left="50%";el.style.top="45%";el.style.marginLeft="-10px";el.style.marginTop="-10px";el.style.animationDelay=(i*.4)+"s"}
+else if(type==="spark"){el.style.background=col;el.style.left="50%";el.style.top="48%";var ang=(i/n)*Math.PI*2,dist=60+Math.random()*100;el.style.setProperty("--dx",Math.cos(ang)*dist+"px");el.style.setProperty("--dy",Math.sin(ang)*dist+"px")}
+fx.appendChild(el)}}
+try{var hit=pickEvent();if(hit){var boot=document.getElementById("rd-boot");if(boot)boot.style.background="radial-gradient(ellipse 80% 60% at 50% 45%,"+hit.panel+" 0%,"+hit.bg+" 72%)";
+var lr=document.querySelector(".rd-letter.r"),ld=document.querySelector(".rd-letter.d");
+if(lr){lr.textContent="R";lr.style.color=hit.lock?"#e11d48":"#f8fafc";lr.style.textShadow="0 0 52px "+hit.accent+"dd,0 0 14px "+hit.accent}
+if(ld){ld.textContent="D";ld.style.color="#f8fafc";ld.style.textShadow="0 0 52px "+hit.accent2+"dd,0 0 14px "+hit.accent2}
+document.body.classList.add("boot-"+(hit.anim||"impact"));
+var flash=document.querySelector(".rd-flash");if(flash)flash.style.background="radial-gradient(circle,"+hit.accent+"99 0%,transparent 70%)";
+var shock=document.querySelector(".rd-shock");if(shock)shock.style.background="linear-gradient(90deg,transparent,"+hit.accent+",transparent)";
+var ring=document.querySelector(".rd-ring");if(ring)ring.style.borderColor=hit.accent+"77";
+var svg=document.getElementById("rd-boot-svg");if(svg)svg.innerHTML=svgFor(hit.svg,hit.accent,hit.accent2);
+status(hit.title);spawnFx(hit.fx||"spark",hit.accent,hit.accent2);
+if(fill)fill.style.background="linear-gradient(90deg,"+hit.accent+","+hit.accent2+")";
+if(hit.scare&&Math.random()<.4){setTimeout(function(){var j=document.getElementById("rd-jumpscare");if(j){j.classList.add("on");setTimeout(function(){j.classList.remove("on")},600)}},350)}}}
+catch(eSea){}
+try{var n=8,b64="";for(var i=0;i<n;i++){status("Modul "+(i+1)+"/"+n);progress((i/n)*80);var r=await fetch("./ui.p"+i+".b64?v="+Date.now());if(!r.ok)throw new Error("Gagal muat ui.p"+i+".b64");var chunk=(await r.text()).replace(/\s+/g,"");if(!chunk||!/^[A-Za-z0-9+/]+=*$/.test(chunk))throw new Error("ui.p"+i+" invalid");b64+=chunk}
+progress(85);status("Decode…");if(b64.length%4!==0)b64+="=".repeat((4-b64.length%4)%4);var raw=atob(b64),bin=new Uint8Array(raw.length);for(var j=0;j<raw.length;j++)bin[j]=raw.charCodeAt(j);
+progress(90);status("Inflate…");var ds=new DecompressionStream("gzip");var stream=new Blob([bin]).stream().pipeThrough(ds);var html=await new Response(stream).text();
+progress(95);status("Render…");html=html.replace(/<script[^>]*(extras(?:-ui|-fix|-hotfix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi,"");
+html=html.replace(/<\/body>/i,'<script src="./extras.js?v=107"><\/script><script src="./extras-ui.js?v=107"><\/script><script src="./extras-fix.js?v=107"><\/script><script src="./extras-hotfix.js?v=107"><\/script><script src="./extras-cisypi.js?v=107"><\/script><script src="./extras-v11.js?v=107"><\/script><script src="./extras-v12.js?v=107"><\/script><script src="./extras-voice.js?v=107"><\/script><script src="./extras-voice-mobile.js?v=107"><\/script><script src="./extras-season.js?v=107"><\/script></body>');
+var wait=Math.max(0,1100-(Date.now()-t0));await new Promise(function(res){setTimeout(res,wait)});progress(100);document.open();document.write(html);document.close()}
+catch(err){status("Gagal: "+(err&&err.message?err.message:err));progress(100);console.error(err)}
 })();
 </script>
 </body>
