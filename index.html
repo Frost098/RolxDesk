@@ -9,22 +9,51 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple-system,sans-serif}
 #rd-boot{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% 45%,#12141a 0%,#070708 70%);overflow:hidden}
-.rd-mark{display:flex;align-items:flex-end;gap:.06em;user-select:none;position:relative;z-index:2}
+.rd-mark{display:flex;align-items:flex-end;gap:.06em;user-select:none;position:relative;z-index:3}
 .rd-letter{font-weight:800;font-size:clamp(64px,18vw,120px);line-height:1;letter-spacing:-.04em;color:#f4f4f6;text-shadow:0 0 40px rgba(124,106,247,.4);transform:scale(0);opacity:0}
-.rd-letter.r{animation:rdSlamR .6s cubic-bezier(.15,1.5,.35,1) .05s forwards}
-.rd-letter.d{animation:rdSlamD .6s cubic-bezier(.15,1.5,.35,1) .18s forwards}
+.rd-letter.r{animation:rdSlamR .65s cubic-bezier(.15,1.5,.35,1) .05s forwards}
+.rd-letter.d{animation:rdSlamD .65s cubic-bezier(.15,1.5,.35,1) .2s forwards}
 @keyframes rdSlamR{0%{transform:scale(0) rotate(-20deg) translateY(-48px);opacity:0}50%{transform:scale(1.22) rotate(6deg);opacity:1}75%{transform:scale(.92) rotate(-2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
 @keyframes rdSlamD{0%{transform:scale(0) rotate(18deg) translateY(48px);opacity:0}50%{transform:scale(1.2) rotate(-5deg);opacity:1}75%{transform:scale(.93) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
-.rd-flash{position:absolute;width:min(280px,70vw);height:min(280px,70vw);border-radius:50%;background:radial-gradient(circle,rgba(124,106,247,.5) 0%,transparent 70%);opacity:0;pointer-events:none;animation:rdFlash .7s ease-out .3s forwards;z-index:1}
-@keyframes rdFlash{0%{transform:scale(.2);opacity:0}40%{opacity:.85}100%{transform:scale(1.8);opacity:0}}
-#rd-boot-status{margin-top:28px;font-size:13px;color:#8b8b98;letter-spacing:.03em;min-height:1.2em;text-align:center;padding:0 16px;position:relative;z-index:2}
-#rd-boot-bar{margin-top:14px;width:min(200px,50vw);height:3px;border-radius:2px;background:#1c1c24;overflow:hidden;position:relative;z-index:2}
+body.boot-impact .rd-letter.r{animation-name:rdImpactR}
+body.boot-impact .rd-letter.d{animation-name:rdImpactD}
+@keyframes rdImpactR{0%{transform:scale(0) translateX(-70px);opacity:0;filter:blur(10px)}55%{transform:scale(1.28) translateX(6px);opacity:1;filter:blur(0)}100%{transform:scale(1);opacity:1}}
+@keyframes rdImpactD{0%{transform:scale(0) translateX(70px);opacity:0;filter:blur(10px)}55%{transform:scale(1.28) translateX(-6px);opacity:1;filter:blur(0)}100%{transform:scale(1);opacity:1}}
+body.boot-pulse .rd-letter.r{animation-name:rdPulseR}
+body.boot-pulse .rd-letter.d{animation-name:rdPulseD}
+@keyframes rdPulseR{0%{transform:scale(0);opacity:0}40%{transform:scale(1.4);opacity:1}60%{transform:scale(.85)}100%{transform:scale(1)}}
+@keyframes rdPulseD{0%{transform:scale(0);opacity:0}40%{transform:scale(1.4);opacity:1}60%{transform:scale(.85)}100%{transform:scale(1)}}
+body.boot-spin .rd-letter.r{animation-name:rdSpinR}
+body.boot-spin .rd-letter.d{animation-name:rdSpinD}
+@keyframes rdSpinR{0%{transform:scale(0) rotate(-180deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes rdSpinD{0%{transform:scale(0) rotate(180deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+.rd-flash{position:absolute;width:min(300px,72vw);height:min(300px,72vw);border-radius:50%;opacity:0;pointer-events:none;animation:rdFlash .75s ease-out .28s forwards;z-index:1}
+@keyframes rdFlash{0%{transform:scale(.2);opacity:0}40%{opacity:.85}100%{transform:scale(1.85);opacity:0}}
+.rd-ring{position:absolute;width:min(220px,55vw);height:min(220px,55vw);border-radius:50%;border:2px solid rgba(255,255,255,.18);opacity:0;pointer-events:none;z-index:1;animation:rdRing .85s ease-out .32s forwards}
+@keyframes rdRing{0%{transform:scale(.25);opacity:0}40%{opacity:.55}100%{transform:scale(1.7);opacity:0}}
+.rd-shock{position:absolute;width:150px;height:3px;border-radius:2px;opacity:0;pointer-events:none;z-index:1;animation:rdShock .42s ease-out .4s forwards}
+@keyframes rdShock{0%{transform:scaleX(.1);opacity:0}45%{opacity:1;transform:scaleX(1.7)}100%{opacity:0;transform:scaleX(2.3)}}
+#rd-boot-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.55}
+#rd-boot-fx{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+#rd-boot-fx span{position:absolute;border-radius:50%;opacity:.2;animation:rdBootFloat 8s linear infinite}
+@keyframes rdBootFloat{0%{transform:translateY(110%) scale(.5);opacity:0}15%{opacity:.22}85%{opacity:.1}100%{transform:translateY(-15%) scale(1);opacity:0}}
+#rd-boot-status{margin-top:28px;font-size:13px;color:#8b8b98;letter-spacing:.03em;min-height:1.2em;text-align:center;padding:0 16px;position:relative;z-index:3}
+#rd-boot-bar{margin-top:14px;width:min(200px,50vw);height:3px;border-radius:2px;background:#1c1c24;overflow:hidden;position:relative;z-index:3}
 #rd-boot-bar>i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#7c6af7,#1a7f64);transition:width .22s ease}
+#rd-jumpscare{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;background:#000;pointer-events:none}
+#rd-jumpscare.on{display:flex;animation:rdScare .55s ease-out forwards}
+#rd-jumpscare .face{font-size:min(40vw,180px);filter:contrast(1.4);animation:rdScareFace .55s ease-out}
+@keyframes rdScare{0%{opacity:0}15%{opacity:1}70%{opacity:1}100%{opacity:0}}
+@keyframes rdScareFace{0%{transform:scale(.3) rotate(-12deg)}40%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1.05)}}
 </style>
 </head>
 <body>
 <div id="rd-boot">
+  <svg id="rd-boot-svg" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+  <div id="rd-boot-fx" aria-hidden="true"></div>
   <div class="rd-flash" aria-hidden="true"></div>
+  <div class="rd-ring" aria-hidden="true"></div>
+  <div class="rd-shock" aria-hidden="true"></div>
   <div class="rd-mark" aria-label="RolxDesk">
     <span class="rd-letter r">R</span>
     <span class="rd-letter d">D</span>
@@ -32,6 +61,7 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
   <div id="rd-boot-status">Memuat…</div>
   <div id="rd-boot-bar"><i id="rd-boot-fill"></i></div>
 </div>
+<div id="rd-jumpscare" aria-hidden="true"><div class="face">☠</div></div>
 <script>
 (async function () {
   var statusEl = document.getElementById("rd-boot-status");
@@ -39,6 +69,102 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
   var t0 = Date.now();
   function status(m) { if (statusEl) statusEl.textContent = m; }
   function progress(p) { if (fill) fill.style.width = Math.min(100, Math.max(0, p)) + "%"; }
+  var EV = [
+    {m:10,d:9,endM:10,endD:9,title:"Leif Erikson & Ultah Squidward",accent:"#2dd4bf",accent2:"#0d9488",bg:"#050a0a",panel:"#0c1616",anim:"impact",svg:"leif"},
+    {m:10,d:31,endM:11,endD:1,title:"Halloween · Scaredy Pants",accent:"#f97316",accent2:"#7c3aed",bg:"#0a0608",panel:"#140e12",anim:"pulse",svg:"halloween",scare:1},
+    {m:11,d:7,endM:11,endD:7,title:"Persaudaraan Karyawan",accent:"#4ade80",accent2:"#16a34a",bg:"#060a07",panel:"#0e1610",anim:"impact",svg:"crew"},
+    {m:12,d:24,endM:12,endD:26,title:"Natal Bikini Bottom",accent:"#ef4444",accent2:"#22c55e",bg:"#07090c",panel:"#10151a",anim:"pulse",svg:"xmas"},
+    {m:12,d:27,endM:12,endD:27,title:"Hari Balon Gratis",accent:"#60a5fa",accent2:"#a78bfa",bg:"#06080c",panel:"#0e121a",anim:"spin",svg:"balloon"},
+    {m:1,d:15,endM:1,endD:15,title:"Menjahili Squidward",accent:"#c084fc",accent2:"#7e22ce",bg:"#09060f",panel:"#130e1a",anim:"spin",svg:"squid"},
+    {m:2,d:15,endM:2,endD:15,title:"Menjahili Squidward",accent:"#c084fc",accent2:"#7e22ce",bg:"#09060f",panel:"#130e1a",anim:"spin",svg:"squid"},
+    {m:2,d:18,endM:3,endD:19,title:"Berburu Takjil",accent:"#a3e635",accent2:"#fbbf24",bg:"#070a06",panel:"#10160c",anim:"pulse",svg:"takjil",night:1},
+    {m:3,d:20,endM:3,endD:22,title:"Lebaran",accent:"#f8fafc",accent2:"#4ade80",bg:"#0a0c0a",panel:"#121816",anim:"impact",svg:"lebaran"},
+    {m:3,d:8,endM:3,endD:8,title:"Gratis Bikini Bottom",accent:"#fbbf24",accent2:"#f59e0b",bg:"#0a0805",panel:"#16120c",anim:"impact",svg:"gift"},
+    {m:6,d:8,endM:6,endD:8,title:"Sahabat Terbaik",accent:"#f472b6",accent2:"#fb923c",bg:"#0a0608",panel:"#161016",anim:"pulse",svg:"friends"},
+    {m:8,d:15,endM:8,endD:15,title:"Tanpa SpongeBob",accent:"#94a3b8",accent2:"#64748b",bg:"#080808",panel:"#121212",anim:"impact",svg:"quiet"},
+    {m:8,d:17,endM:8,endD:17,title:"Hari Kemerdekaan RI",accent:"#e11d48",accent2:"#f8fafc",bg:"#0a0608",panel:"#160e12",anim:"impact",svg:"flag",lock:1}
+  ];
+  function dn(m,d){ return m*100+d; }
+  function pickEvent() {
+    var now = new Date();
+    var mo = now.getMonth()+1, da = now.getDate(), hh = now.getHours();
+    var nowN = dn(mo, da);
+    try {
+      var raw = localStorage.getItem("rd_season_override");
+      if (raw) {
+        var o = JSON.parse(raw);
+        if (o && o.until && Date.now() < o.until && o.id && o.id !== "none") {
+          var map = { "leif-squidward":0,"halloween-bb":1,"employee-brotherhood":2,"bb-christmas":3,"free-balloon":4,"annoy-squidward":5,"annoy-squidward-feb":6,"ramadan-takjil":7,"lebaran":8,"bb-free-day":9,"best-friends":10,"no-spongebob":11,"indonesia-17agustus":12 };
+          if (map[o.id] != null) return EV[map[o.id]];
+        }
+      }
+    } catch(e){}
+    for (var i=0;i<EV.length;i++) {
+      var e = EV[i];
+      var a = dn(e.m, e.d), b = dn(e.endM||e.m, e.endD||e.d);
+      var ok = (a<=b) ? (nowN>=a && nowN<=b) : (nowN>=a || nowN<=b);
+      if (!ok) continue;
+      if (e.night && !(hh>=18 || hh<5)) continue;
+      return e;
+    }
+    return null;
+  }
+  function svgFor(kind, a1, a2) {
+    if (kind === "leif") return '<circle cx="200" cy="200" r="120" fill="none" stroke="'+a1+'" stroke-width="1.5" opacity=".25"/><path d="M80 260 Q200 80 320 260" fill="none" stroke="'+a1+'" stroke-width="2" opacity=".35"/><path d="M120 240 L200 120 L280 240" fill="none" stroke="'+a2+'" stroke-width="1.5" opacity=".3"/><circle cx="200" cy="150" r="6" fill="'+a1+'" opacity=".4"/>';
+    if (kind === "halloween") return '<circle cx="200" cy="200" r="90" fill="'+a1+'" opacity=".12"/><path d="M140 180 Q160 160 180 180 Q200 160 220 180 Q240 160 260 180" fill="none" stroke="'+a2+'" stroke-width="3" opacity=".4"/><circle cx="170" cy="200" r="8" fill="'+a1+'" opacity=".5"/><circle cx="230" cy="200" r="8" fill="'+a1+'" opacity=".5"/><path d="M170 240 Q200 270 230 240" fill="none" stroke="'+a1+'" stroke-width="3" opacity=".45"/>';
+    if (kind === "xmas") return '<polygon points="200,80 140,200 260,200" fill="'+a2+'" opacity=".2"/><polygon points="200,120 150,220 250,220" fill="'+a2+'" opacity=".25"/><rect x="190" y="220" width="20" height="40" fill="'+a1+'" opacity=".3"/><circle cx="200" cy="75" r="10" fill="'+a1+'" opacity=".5"/>';
+    if (kind === "balloon") return '<ellipse cx="200" cy="160" rx="50" ry="65" fill="'+a1+'" opacity=".2"/><path d="M200 225 Q190 280 200 320" fill="none" stroke="'+a2+'" stroke-width="2" opacity=".35"/>';
+    if (kind === "squid") return '<ellipse cx="200" cy="170" rx="55" ry="70" fill="'+a1+'" opacity=".15"/><path d="M160 230 Q150 300 140 340" fill="none" stroke="'+a2+'" stroke-width="3" opacity=".3"/><path d="M200 240 Q200 310 200 350" fill="none" stroke="'+a2+'" stroke-width="3" opacity=".3"/><path d="M240 230 Q250 300 260 340" fill="none" stroke="'+a2+'" stroke-width="3" opacity=".3"/>';
+    if (kind === "takjil" || kind === "gift") return '<rect x="150" y="150" width="100" height="80" rx="8" fill="'+a1+'" opacity=".18"/><path d="M150 180 H250" stroke="'+a2+'" stroke-width="3" opacity=".35"/><path d="M200 150 V230" stroke="'+a2+'" stroke-width="3" opacity=".35"/>';
+    if (kind === "lebaran") return '<path d="M120 220 Q200 100 280 220" fill="none" stroke="'+a1+'" stroke-width="2" opacity=".35"/><circle cx="200" cy="160" r="28" fill="none" stroke="'+a2+'" stroke-width="2" opacity=".3"/><path d="M200 100 V130" stroke="'+a1+'" stroke-width="2" opacity=".4"/>';
+    if (kind === "flag") return '<rect x="100" y="120" width="200" height="70" fill="'+a1+'" opacity=".35"/><rect x="100" y="190" width="200" height="70" fill="'+a2+'" opacity=".35"/>';
+    if (kind === "friends") return '<circle cx="170" cy="180" r="40" fill="'+a1+'" opacity=".2"/><circle cx="230" cy="180" r="40" fill="'+a2+'" opacity=".2"/>';
+    if (kind === "crew") return '<rect x="130" y="140" width="140" height="100" rx="12" fill="'+a1+'" opacity=".15"/><circle cx="200" cy="170" r="20" fill="'+a2+'" opacity=".25"/>';
+    if (kind === "quiet") return '<circle cx="200" cy="200" r="80" fill="none" stroke="'+a1+'" stroke-width="2" opacity=".2"/><path d="M160 200 H240" stroke="'+a1+'" stroke-width="4" opacity=".35"/>';
+    return '<circle cx="200" cy="200" r="100" fill="none" stroke="'+a1+'" stroke-width="1" opacity=".2"/>';
+  }
+  try {
+    var hit = pickEvent();
+    if (hit) {
+      var boot = document.getElementById("rd-boot");
+      if (boot) boot.style.background = "radial-gradient(ellipse 80% 60% at 50% 45%," + hit.panel + " 0%," + hit.bg + " 72%)";
+      var lr = document.querySelector(".rd-letter.r");
+      var ld = document.querySelector(".rd-letter.d");
+      if (lr) { lr.textContent = "R"; lr.style.color = hit.lock ? "#e11d48" : "#f8fafc"; lr.style.textShadow = "0 0 48px " + hit.accent + "cc, 0 0 12px " + hit.accent; }
+      if (ld) { ld.textContent = "D"; ld.style.color = "#f8fafc"; ld.style.textShadow = "0 0 48px " + hit.accent2 + "cc, 0 0 12px " + hit.accent2; }
+      if (hit.anim === "impact") document.body.classList.add("boot-impact");
+      if (hit.anim === "pulse") document.body.classList.add("boot-pulse");
+      if (hit.anim === "spin") document.body.classList.add("boot-spin");
+      var flash = document.querySelector(".rd-flash");
+      if (flash) flash.style.background = "radial-gradient(circle," + hit.accent + "88 0%,transparent 70%)";
+      var shock = document.querySelector(".rd-shock");
+      if (shock) shock.style.background = "linear-gradient(90deg,transparent," + hit.accent + ",transparent)";
+      var ring = document.querySelector(".rd-ring");
+      if (ring) ring.style.borderColor = hit.accent + "66";
+      var svg = document.getElementById("rd-boot-svg");
+      if (svg) svg.innerHTML = svgFor(hit.svg, hit.accent, hit.accent2);
+      status(hit.title);
+      var fx = document.getElementById("rd-boot-fx");
+      if (fx) {
+        for (var k=0;k<14;k++) {
+          var sp = document.createElement("span");
+          sp.style.left = (Math.random()*100) + "%";
+          sp.style.background = k % 2 ? hit.accent : hit.accent2;
+          sp.style.animationDelay = (Math.random()*7) + "s";
+          var sz = 4 + Math.random()*10;
+          sp.style.width = sz + "px"; sp.style.height = sz + "px";
+          fx.appendChild(sp);
+        }
+      }
+      if (fill) fill.style.background = "linear-gradient(90deg," + hit.accent + "," + hit.accent2 + ")";
+      if (hit.scare && Math.random() < 0.35) {
+        setTimeout(function () {
+          var j = document.getElementById("rd-jumpscare");
+          if (j) { j.classList.add("on"); setTimeout(function () { j.classList.remove("on"); }, 600); }
+        }, 400);
+      }
+    }
+  } catch (eSea) {}
   try {
     var n = 8, b64 = "";
     for (var i = 0; i < n; i++) {
@@ -63,17 +189,17 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
     progress(95); status("Render…");
     html = html.replace(/<script[^>]*(extras(?:-ui|-fix|-hotfix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi, "");
     html = html.replace(/<\/body>/i,
-      '<script src="./extras.js?v=105"><\/script>' +
-      '<script src="./extras-ui.js?v=105"><\/script>' +
-      '<script src="./extras-fix.js?v=105"><\/script>' +
-      '<script src="./extras-hotfix.js?v=105"><\/script>' +
-      '<script src="./extras-cisypi.js?v=105"><\/script>' +
-      '<script src="./extras-v11.js?v=105"><\/script>' +
-      '<script src="./extras-v12.js?v=105"><\/script>' +
-      '<script src="./extras-voice.js?v=105"><\/script>' +
-      '<script src="./extras-voice-mobile.js?v=105"><\/script>' +
-      '<script src="./extras-season.js?v=105"><\/script></body>');
-    var wait = Math.max(0, 900 - (Date.now() - t0));
+      '<script src="./extras.js?v=106"><\/script>' +
+      '<script src="./extras-ui.js?v=106"><\/script>' +
+      '<script src="./extras-fix.js?v=106"><\/script>' +
+      '<script src="./extras-hotfix.js?v=106"><\/script>' +
+      '<script src="./extras-cisypi.js?v=106"><\/script>' +
+      '<script src="./extras-v11.js?v=106"><\/script>' +
+      '<script src="./extras-v12.js?v=106"><\/script>' +
+      '<script src="./extras-voice.js?v=106"><\/script>' +
+      '<script src="./extras-voice-mobile.js?v=106"><\/script>' +
+      '<script src="./extras-season.js?v=106"><\/script></body>');
+    var wait = Math.max(0, 1000 - (Date.now() - t0));
     await new Promise(function (res) { setTimeout(res, wait); });
     progress(100);
     document.open(); document.write(html); document.close();
