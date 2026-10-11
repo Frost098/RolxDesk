@@ -1,6 +1,7 @@
-/* RD season v6 — fixed dev panel + fish family */
+/* RD season v7 — fix sidebar clicks + fish family */
 (function () {
-  if (window.__RD_SEASON_V6__) return;
+  if (window.__RD_SEASON_V7__) return;
+  window.__RD_SEASON_V7__ = true;
   window.__RD_SEASON_V6__ = true;
   window.__RD_SEASON_V5__ = true;
 
@@ -82,7 +83,10 @@
       "#rd-season-particles{position:fixed;inset:0;z-index:2;pointer-events:none!important;overflow:hidden;}" +
       "#rd-season-particles i{position:absolute;pointer-events:none!important;border-radius:50%;opacity:.12;animation:rdParticle 12s linear infinite;}" +
       "@keyframes rdParticle{0%{transform:translateY(110vh) scale(.6);opacity:0}10%{opacity:.14}90%{opacity:.1}100%{transform:translateY(-12vh) scale(1.1);opacity:0}}" +
-      ".sidebar,.main,.chat-header,.composer,.input-area,#messages,.message,.modal,.modal-content,#settingsModal,#voicePanel,.voice-panel,.voice-controls,#rd-voice-type-wrap{position:relative;z-index:5;}" +
+      ".main,.chat-header,.composer,.input-area,#messages,.message,.modal,.modal-content,#settingsModal,#voicePanel,.voice-panel,.voice-controls,#rd-voice-type-wrap{position:relative;z-index:5;}" +
+      ".sidebar{z-index:60!important;pointer-events:auto!important;}" +
+      ".sidebar-footer,.sidebar-footer button,#settingsBtn,#rd-dev-btn{pointer-events:auto!important;position:relative;z-index:61!important;}" +
+      ".sidebar-overlay{pointer-events:auto;}" +
       "body.rd-season-active{padding-top:28px!important;}";
     document.head.appendChild(st);
   }
@@ -193,9 +197,9 @@
       return '<option value="' + e.id + '">' + e.title + " (" + e.start.m + "/" + e.start.d + "–" + e.end.m + "/" + e.end.d + ")</option>";
     }).join("");
     panel.innerHTML =
-      '<div class="box" role="dialog" aria-label="Developer event UI">' +
+      '<div class="box" role="dialog">' +
       "<h3>Dev · Event UI (lokal)</h3>" +
-      '<p style="opacity:.75;font-size:12px;margin:0 0 8px">Hanya browser ini. Tidak ke server. Auto-lock 2 jam.</p>' +
+      '<p style="opacity:.75;font-size:12px;margin:0 0 8px">Hanya browser ini. Auto-lock 2 jam.</p>' +
       "<label>Event</label>" +
       '<select id="rd-dev-event"><option value="none">— none (clear) —</option>' + opts + "</select>" +
       '<div class="row"><button type="button" class="cancel" id="rd-dev-cancel">Tutup</button>' +
@@ -296,8 +300,7 @@
         var text =
           "**Fish Agent session dibuat.**\n\n" +
           "```json\n" + JSON.stringify(sess, null, 2) + "\n```\n\n" +
-          "Session ini realtime (LiveKit). Token di atas siap dipakai client Fish Agent.\n" +
-          "`session_id`: `" + (sess.session_id || "?") + "`";
+          "Session realtime (LiveKit). `session_id`: `" + (sess.session_id || "?") + "`";
         return { choices: [{ message: { role: "assistant", content: text } }] };
       }
       return prev.apply(this, arguments);
