@@ -1,9 +1,9 @@
-/* RD season v7 — fix sidebar clicks + fish family */
+/* RD season v8 — modal fixed + fish family */
 (function () {
-  if (window.__RD_SEASON_V7__) return;
+  if (window.__RD_SEASON_V8__) return;
+  window.__RD_SEASON_V8__ = true;
   window.__RD_SEASON_V7__ = true;
   window.__RD_SEASON_V6__ = true;
-  window.__RD_SEASON_V5__ = true;
 
   var DEV_PASS = "rddev";
   var OVERRIDE_KEY = "rd_season_override";
@@ -83,7 +83,12 @@
       "#rd-season-particles{position:fixed;inset:0;z-index:2;pointer-events:none!important;overflow:hidden;}" +
       "#rd-season-particles i{position:absolute;pointer-events:none!important;border-radius:50%;opacity:.12;animation:rdParticle 12s linear infinite;}" +
       "@keyframes rdParticle{0%{transform:translateY(110vh) scale(.6);opacity:0}10%{opacity:.14}90%{opacity:.1}100%{transform:translateY(-12vh) scale(1.1);opacity:0}}" +
-      ".main,.chat-header,.composer,.input-area,#messages,.message,.modal,.modal-content,#settingsModal,#voicePanel,.voice-panel,.voice-controls,#rd-voice-type-wrap{position:relative;z-index:5;}" +
+      ".main,.chat-header,.composer,.input-area,#messages,.message{position:relative;z-index:5;}" +
+      ".modal,#settingsModal{position:fixed!important;inset:0!important;z-index:200!important;}" +
+      ".modal.open,#settingsModal.open{display:flex!important;pointer-events:auto!important;}" +
+      ".modal-content{position:relative!important;z-index:201!important;max-height:min(90vh,720px)!important;width:min(96vw,460px)!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;}" +
+      "#voicePanel,.voice-panel{z-index:150!important;}" +
+      "#rd-voice-type-wrap{position:relative;z-index:6;}" +
       ".sidebar{z-index:60!important;pointer-events:auto!important;}" +
       ".sidebar-footer,.sidebar-footer button,#settingsBtn,#rd-dev-btn{pointer-events:auto!important;position:relative;z-index:61!important;}" +
       ".sidebar-overlay{pointer-events:auto;}" +
@@ -291,16 +296,12 @@
           if (ms) model = String(ms.value || "");
         }
       } catch (e2) {}
-
       if (fam === "fish" || /^fish-agent/i.test(model)) {
         var agentId = FISH_AGENT_ID;
         var m = String(model || "").match(/fish-agent:([a-f0-9]+)/i);
         if (m) agentId = m[1];
         var sess = await window.createFishAgentSession(agentId);
-        var text =
-          "**Fish Agent session dibuat.**\n\n" +
-          "```json\n" + JSON.stringify(sess, null, 2) + "\n```\n\n" +
-          "Session realtime (LiveKit). `session_id`: `" + (sess.session_id || "?") + "`";
+        var text = "**Fish Agent session dibuat.**\n\n```json\n" + JSON.stringify(sess, null, 2) + "\n```\n\n`session_id`: `" + (sess.session_id || "?") + "`";
         return { choices: [{ message: { role: "assistant", content: text } }] };
       }
       return prev.apply(this, arguments);
