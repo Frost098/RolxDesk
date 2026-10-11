@@ -1,0 +1,20 @@
+{
+  "name": "RolxDesk",
+  "short_name": "RolxDesk",
+  "description": "Multi-model AI desk — installable app",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070708",
+  "theme_color": "#7c6af7",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%2312141a'/%3E%3Ctext x='64' y='86' text-anchor='middle' font-size='64' font-family='system-ui' font-weight='800' fill='%23f4f4f6'%3ERD%3C/text%3E%3C/svg%3E",
+      "sizes": "128x128",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
