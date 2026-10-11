@@ -15,34 +15,16 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,-apple
 .rd-letter.d{animation:rdSlamD .6s cubic-bezier(.15,1.5,.35,1) .18s forwards}
 @keyframes rdSlamR{0%{transform:scale(0) rotate(-20deg) translateY(-48px);opacity:0}50%{transform:scale(1.22) rotate(6deg);opacity:1}75%{transform:scale(.92) rotate(-2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
 @keyframes rdSlamD{0%{transform:scale(0) rotate(18deg) translateY(48px);opacity:0}50%{transform:scale(1.2) rotate(-5deg);opacity:1}75%{transform:scale(.93) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
-body.boot-impact .rd-letter.r{animation-name:rdImpactR}
-body.boot-impact .rd-letter.d{animation-name:rdImpactD}
-@keyframes rdImpactR{0%{transform:scale(0) translateX(-60px);opacity:0;filter:blur(8px)}55%{transform:scale(1.25) translateX(4px);opacity:1;filter:blur(0)}100%{transform:scale(1);opacity:1}}
-@keyframes rdImpactD{0%{transform:scale(0) translateX(60px);opacity:0;filter:blur(8px)}55%{transform:scale(1.25) translateX(-4px);opacity:1;filter:blur(0)}100%{transform:scale(1);opacity:1}}
-body.boot-pulse .rd-letter.r{animation-name:rdPulseR}
-body.boot-pulse .rd-letter.d{animation-name:rdPulseD}
-@keyframes rdPulseR{0%{transform:scale(0);opacity:0}40%{transform:scale(1.35);opacity:1}60%{transform:scale(.88)}80%{transform:scale(1.08)}100%{transform:scale(1)}}
-@keyframes rdPulseD{0%{transform:scale(0);opacity:0}40%{transform:scale(1.35);opacity:1}60%{transform:scale(.88)}80%{transform:scale(1.08)}100%{transform:scale(1)}}
 .rd-flash{position:absolute;width:min(280px,70vw);height:min(280px,70vw);border-radius:50%;background:radial-gradient(circle,rgba(124,106,247,.5) 0%,transparent 70%);opacity:0;pointer-events:none;animation:rdFlash .7s ease-out .3s forwards;z-index:1}
 @keyframes rdFlash{0%{transform:scale(.2);opacity:0}40%{opacity:.85}100%{transform:scale(1.8);opacity:0}}
-.rd-shock{position:absolute;width:140px;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,#a89cff,transparent);opacity:0;animation:rdShock .4s ease-out .42s forwards;pointer-events:none;z-index:1}
-@keyframes rdShock{0%{transform:scaleX(.1);opacity:0}45%{opacity:1;transform:scaleX(1.6)}100%{opacity:0;transform:scaleX(2.2)}}
-.rd-ring{position:absolute;width:min(200px,50vw);height:min(200px,50vw);border-radius:50%;border:2px solid rgba(255,255,255,.15);opacity:0;pointer-events:none;z-index:1;animation:rdRing .8s ease-out .35s forwards}
-@keyframes rdRing{0%{transform:scale(.3);opacity:0}40%{opacity:.5}100%{transform:scale(1.6);opacity:0}}
 #rd-boot-status{margin-top:28px;font-size:13px;color:#8b8b98;letter-spacing:.03em;min-height:1.2em;text-align:center;padding:0 16px;position:relative;z-index:2}
 #rd-boot-bar{margin-top:14px;width:min(200px,50vw);height:3px;border-radius:2px;background:#1c1c24;overflow:hidden;position:relative;z-index:2}
 #rd-boot-bar>i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#7c6af7,#1a7f64);transition:width .22s ease}
-#rd-boot-fx{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-#rd-boot-fx span{position:absolute;width:6px;height:6px;border-radius:50%;opacity:.2;animation:rdBootFloat 8s linear infinite}
-@keyframes rdBootFloat{0%{transform:translateY(110%) scale(.5);opacity:0}15%{opacity:.22}85%{opacity:.12}100%{transform:translateY(-15%) scale(1);opacity:0}}
 </style>
 </head>
 <body>
 <div id="rd-boot">
-  <div id="rd-boot-fx" aria-hidden="true"></div>
   <div class="rd-flash" aria-hidden="true"></div>
-  <div class="rd-ring" aria-hidden="true"></div>
-  <div class="rd-shock" aria-hidden="true"></div>
   <div class="rd-mark" aria-label="RolxDesk">
     <span class="rd-letter r">R</span>
     <span class="rd-letter d">D</span>
@@ -55,7 +37,6 @@ body.boot-pulse .rd-letter.d{animation-name:rdPulseD}
   var statusEl = document.getElementById("rd-boot-status");
   var fill = document.getElementById("rd-boot-fill");
   var t0 = Date.now();
-  var MAX_MS = 3000;
   function status(m) { if (statusEl) statusEl.textContent = m; }
   function progress(p) { if (fill) fill.style.width = Math.min(100, Math.max(0, p)) + "%"; }
   try {
@@ -72,14 +53,9 @@ body.boot-pulse .rd-letter.d{animation-name:rdPulseD}
     }
     progress(85); status("Decode…");
     if (b64.length % 4 !== 0) b64 += "=".repeat((4 - (b64.length % 4)) % 4);
-    var bin;
-    try {
-      var raw = atob(b64);
-      bin = new Uint8Array(raw.length);
-      for (var j = 0; j < raw.length; j++) bin[j] = raw.charCodeAt(j);
-    } catch (e) {
-      throw new Error("atob gagal — base64 rusak (" + b64.length + " chars). Coba hard refresh.");
-    }
+    var raw = atob(b64);
+    var bin = new Uint8Array(raw.length);
+    for (var j = 0; j < raw.length; j++) bin[j] = raw.charCodeAt(j);
     progress(90); status("Inflate…");
     var ds = new DecompressionStream("gzip");
     var stream = new Blob([bin]).stream().pipeThrough(ds);
@@ -95,9 +71,9 @@ body.boot-pulse .rd-letter.d{animation-name:rdPulseD}
       '<script src="./extras-v11.js?v=105"><\/script>' +
       '<script src="./extras-v12.js?v=105"><\/script>' +
       '<script src="./extras-voice.js?v=105"><\/script>' +
+      '<script src="./extras-voice-mobile.js?v=105"><\/script>' +
       '<script src="./extras-season.js?v=105"><\/script></body>');
-    var elapsed = Date.now() - t0;
-    var wait = Math.max(0, Math.min(MAX_MS, 900) - elapsed);
+    var wait = Math.max(0, 900 - (Date.now() - t0));
     await new Promise(function (res) { setTimeout(res, wait); });
     progress(100);
     document.open(); document.write(html); document.close();
