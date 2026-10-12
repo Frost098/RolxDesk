@@ -23,6 +23,10 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,sans-s
 #rd-boot-bar{margin-top:12px;width:180px;height:3px;background:#1c1c24;border-radius:2px;overflow:hidden}
 #rd-boot-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7c6af7,#1a7f64);transition:width .2s}
 </style>
+<script>
+window.__RD_DEFERRED_INSTALL=null;
+window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__RD_DEFERRED_INSTALL=e;});
+</script>
 </head>
 <body>
 <div id="rd-boot"><div><span class="rd-letter r">R</span><span class="rd-letter d">D</span></div>
@@ -40,7 +44,7 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,sans-s
     var raw=atob(b64),bin=new Uint8Array(raw.length);for(var j=0;j<raw.length;j++)bin[j]=raw.charCodeAt(j);
     var html=await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
     html=html.replace(/<script[^>]*(extras(?:-ui|-fix|-hotfix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi,"");
-    html=html.replace(/<\/body>/i,'<script src="./extras.js?v=117"><\/script><script src="./extras-ui.js?v=117"><\/script><script src="./extras-fix.js?v=117"><\/script><script src="./extras-hotfix.js?v=117"><\/script><script src="./extras-cisypi.js?v=117"><\/script><script src="./extras-v11.js?v=117"><\/script><script src="./extras-v12.js?v=117"><\/script><script src="./extras-voice.js?v=117"><\/script><script src="./extras-voice-fix.js?v=117"><\/script><script src="./extras-voice-mobile.js?v=117"><\/script><script src="./extras-fish-agent.js?v=117"><\/script><script src="./extras-season.js?v=117"><\/script><script src="./extras-cool.js?v=117"><\/script><script src="./extras-mobile-secret.js?v=117"><\/script><script src="./extras-fun-tools.js?v=117"><\/script><script src="./extras-install.js?v=117"><\/script></body>');
+    html=html.replace(/<\/body>/i,'<script src="./extras.js?v=118"><\/script><script src="./extras-ui.js?v=118"><\/script><script src="./extras-fix.js?v=118"><\/script><script src="./extras-hotfix.js?v=118"><\/script><script src="./extras-cisypi.js?v=118"><\/script><script src="./extras-v11.js?v=118"><\/script><script src="./extras-v12.js?v=118"><\/script><script src="./extras-voice.js?v=118"><\/script><script src="./extras-voice-fix.js?v=118"><\/script><script src="./extras-voice-mobile.js?v=118"><\/script><script src="./extras-fish-agent.js?v=118"><\/script><script src="./extras-season.js?v=118"><\/script><script src="./extras-cool.js?v=118"><\/script><script src="./extras-mobile-secret.js?v=118"><\/script><script src="./extras-fun-tools.js?v=118"><\/script><script src="./extras-install.js?v=118"><\/script></body>');
     await new Promise(function(res){setTimeout(res,Math.max(0,700-(Date.now()-t0)))});
     progress(100);document.open();document.write(html);document.close();
   }catch(err){status("Gagal: "+(err&&err.message?err.message:err));console.error(err)}
