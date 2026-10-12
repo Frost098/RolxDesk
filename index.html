@@ -4,8 +4,13 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <meta name="theme-color" content="#7c6af7"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="RolxDesk"/>
 <title>RolxDesk</title>
 <link rel="manifest" href="/manifest.webmanifest"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%2312141a'/%3E%3Ctext x='64' y='86' text-anchor='middle' font-size='64' font-family='system-ui' font-weight='800' fill='%23f4f4f6'%3ERD%3C/text%3E%3C/svg%3E"/>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%2312141a'/%3E%3Ctext x='90' y='120' text-anchor='middle' font-size='90' font-family='system-ui' font-weight='800' fill='%23f4f4f6'%3ERD%3C/text%3E%3C/svg%3E"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,sans-serif}
@@ -35,7 +40,7 @@ html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,sans-s
     var raw=atob(b64),bin=new Uint8Array(raw.length);for(var j=0;j<raw.length;j++)bin[j]=raw.charCodeAt(j);
     var html=await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
     html=html.replace(/<script[^>]*(extras(?:-ui|-fix|-hotfix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi,"");
-    html=html.replace(/<\/body>/i,'<script src="./extras.js?v=116"><\/script><script src="./extras-ui.js?v=116"><\/script><script src="./extras-fix.js?v=116"><\/script><script src="./extras-hotfix.js?v=116"><\/script><script src="./extras-cisypi.js?v=116"><\/script><script src="./extras-v11.js?v=116"><\/script><script src="./extras-v12.js?v=116"><\/script><script src="./extras-voice.js?v=116"><\/script><script src="./extras-voice-fix.js?v=116"><\/script><script src="./extras-voice-mobile.js?v=116"><\/script><script src="./extras-fish-agent.js?v=116"><\/script><script src="./extras-season.js?v=116"><\/script><script src="./extras-cool.js?v=116"><\/script><script src="./extras-mobile-secret.js?v=116"><\/script><script src="./extras-fun-tools.js?v=116"><\/script></body>');
+    html=html.replace(/<\/body>/i,'<script src="./extras.js?v=117"><\/script><script src="./extras-ui.js?v=117"><\/script><script src="./extras-fix.js?v=117"><\/script><script src="./extras-hotfix.js?v=117"><\/script><script src="./extras-cisypi.js?v=117"><\/script><script src="./extras-v11.js?v=117"><\/script><script src="./extras-v12.js?v=117"><\/script><script src="./extras-voice.js?v=117"><\/script><script src="./extras-voice-fix.js?v=117"><\/script><script src="./extras-voice-mobile.js?v=117"><\/script><script src="./extras-fish-agent.js?v=117"><\/script><script src="./extras-season.js?v=117"><\/script><script src="./extras-cool.js?v=117"><\/script><script src="./extras-mobile-secret.js?v=117"><\/script><script src="./extras-fun-tools.js?v=117"><\/script><script src="./extras-install.js?v=117"><\/script></body>');
     await new Promise(function(res){setTimeout(res,Math.max(0,700-(Date.now()-t0)))});
     progress(100);document.open();document.write(html);document.close();
   }catch(err){status("Gagal: "+(err&&err.message?err.message:err));console.error(err)}

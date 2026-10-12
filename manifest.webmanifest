@@ -1,7 +1,7 @@
 {
   "name": "RolxDesk",
   "short_name": "RolxDesk",
-  "description": "Multi-model AI desk — installable app",
+  "description": "Multi-model AI desk — chat, voice, tools. Installable.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -9,12 +9,19 @@
   "background_color": "#070708",
   "theme_color": "#7c6af7",
   "lang": "id",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%2312141a'/%3E%3Ctext x='64' y='86' text-anchor='middle' font-size='64' font-family='system-ui' font-weight='800' fill='%23f4f4f6'%3ERD%3C/text%3E%3C/svg%3E",
-      "sizes": "128x128",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%2312141a'/%3E%3Ctext x='256' y='340' text-anchor='middle' font-size='240' font-family='system-ui,sans-serif' font-weight='800' fill='%23f4f4f6'%3ERD%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%2312141a'/%3E%3Ctext x='256' y='340' text-anchor='middle' font-size='240' font-family='system-ui,sans-serif' font-weight='800' fill='%23f4f4f6'%3ERD%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }
