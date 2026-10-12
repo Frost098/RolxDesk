@@ -1,7 +1,7 @@
-/* RD voice-fix v112 — force Fish TTS + block agent JSON in chat */
+/* RD voice-fix v114 — HARD force Fish TTS, sync key, never silent Google */
 (function () {
-  if (window.__RD_VOICE_FIX_112__) return;
-  window.__RD_VOICE_FIX_112__ = true;
+  if (window.__RD_VOICE_FIX_114__) return;
+  window.__RD_VOICE_FIX_114__ = true;
 
   var REFS = {
     ibuki: "5b6d90ce888747c0a5dfe798181324b9",
@@ -14,9 +14,14 @@
     prabowo: "b8d594e696694b499aa12e32d0c1b61"
   };
 
+  function toast(m, t) {
+    if (typeof showToast === "function") showToast(m, t || "success");
+    else console.log("[RD]", m);
+  }
+
   function normId(id) {
     id = String(id || "zeta").toLowerCase().trim().replace(/\s+/g, "-");
-    if (id === "vestia-zeta" || id === "vestia") return "zeta";
+    if (id === "vestia" || id === "vestia-zeta") return "zeta";
     if (id === "koro" || id === "koro_sensei" || id === "korosensei") return "koro-sensei";
     return id;
   }
@@ -26,6 +31,7 @@
     try {
       id = normId((window.state && state.selectedVoice) || localStorage.getItem("rd_voice_character") || "zeta");
     } catch (e) {}
+    if (id === "investigator") id = "zeta";
     var ref = REFS[id] || REFS.zeta;
     try {
       localStorage.setItem("rd_fish_reference", ref);
@@ -34,16 +40,29 @@
     return ref;
   }
 
-  function getFishKey() {
-    try {
-      var k = (window.state && state.keys && state.keys.fish) || "";
-      if (k) return String(k).trim();
-    } catch (e) {}
+  function syncFishKey() {
+    var key = "";
     try {
       var el = document.getElementById("keyFish");
-      if (el && el.value) return String(el.value).trim();
-    } catch (e2) {}
-    return "";
+      if (el && el.value && el.value.trim()) key = el.value.trim();
+    } catch (e) {}
+    if (!key) {
+      try { key = String(localStorage.getItem("rd_fish_key") || "").trim(); } catch (e2) {}
+    }
+    if (!key) {
+      try { key = String((window.state && state.keys && state.keys.fish) || "").trim(); } catch (e3) {}
+    }
+    if (key) {
+      try {
+        if (!window.state) window.state = {};
+        if (!state.keys) state.keys = {};
+        state.keys.fish = key;
+        localStorage.setItem("rd_fish_key", key);
+        var el2 = document.getElementById("keyFish");
+        if (el2 && !el2.value) el2.value = key;
+      } catch (e4) {}
+    }
+    return key;
   }
 
   function cleanText(t) {
@@ -60,12 +79,29 @@
       "border:1px solid rgba(139,124,255,.5)!important;border-radius:14px!important;" +
       "background:rgba(8,8,14,.94)!important;font:600 clamp(18px,3vw,28px)/1.5 system-ui!important;text-align:center!important;" +
       "pointer-events:none!important;display:block!important;}" +
-      "#rd-karaoke .rd-k-word{display:none;opacity:0;}" +
-      "#rd-karaoke .rd-k-word.active{display:inline-block!important;opacity:1!important;color:#fff!important;animation:rdWordIn .18s ease forwards;text-shadow:0 0 20px rgba(139,124,255,.95)}" +
+      "#rd-karaoke .rd-k-word{display:none;}" +
+      "#rd-karaoke .rd-k-word.active{display:inline-block!important;color:#fff!important;animation:rdWordIn .18s ease forwards;text-shadow:0 0 20px rgba(139,124,255,.95)}" +
       "#rd-karaoke .rd-k-word.done{display:none!important;}" +
       "@keyframes rdWordIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}" +
-      "#rd-streak,#rd-orb-secret{display:none!important;}";
+      "#rd-streak,#rd-orb-secret{display:none!important;}" +
+      "#rd-fish-status-bar{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:99999;font:600 11px system-ui;" +
+      "background:rgba(0,0,0,.75);color:#c4b5fd;padding:4px 10px;border-radius:999px;pointer-events:none;display:none}" +
+      "#rd-fish-status-bar.show{display:block}";
     document.head.appendChild(s);
+  }
+
+  function statusBar(msg) {
+    injectStyle();
+    var el = document.getElementById("rd-fish-status-bar");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "rd-fish-status-bar";
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(el.__t);
+    el.__t = setTimeout(function () { el.classList.remove("show"); }, 4000);
   }
 
   function showKaraoke(text, audioOrMs) {
@@ -138,26 +174,35 @@
       setTimeout(function () { if (box.parentNode) box.remove(); }, 200);
     };
   }
-  window.rdShowKaraoke = showKaraoke;
 
   var speaking = false;
   async function speakFishForced(text) {
-    var key = getFishKey();
+    syncFishKey();
+    var key = syncFishKey();
     var t = cleanText(text);
-    if (!key || !t || speaking) return false;
+    if (!t || speaking) return false;
     speaking = true;
+    statusBar("Fish TTS…");
     try {
       var ref = currentRef();
+      var headers = { "Content-Type": "application/json" };
+      if (key) headers.Authorization = "Bearer " + key;
       var res = await fetch("/api/fish-tts", {
         method: "POST",
-        headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-        body: JSON.stringify({ text: t.slice(0, 1200), reference_id: ref, model: "s2.1-pro-free", format: "mp3" })
+        headers: headers,
+        body: JSON.stringify({ text: t.slice(0, 1200), reference_id: ref, model: "s2.1-pro-free" })
       });
       if (!res.ok) {
-        console.warn("[RD] Fish TTS fail", res.status);
+        var errJ = {};
+        try { errJ = await res.json(); } catch (e) {}
+        var msg = errJ.error || errJ.detail || ("HTTP " + res.status);
+        statusBar("Fish gagal: " + String(msg).slice(0, 80));
+        toast("Fish TTS gagal: " + String(msg).slice(0, 100), "error");
         speaking = false;
         return false;
       }
+      var used = res.headers.get("X-RD-Fish-Model") || "fish";
+      statusBar("Fish OK (" + used + ")");
       var audio = new Audio(URL.createObjectURL(await res.blob()));
       await new Promise(function (resolve) {
         if (audio.readyState >= 1) return resolve();
@@ -173,108 +218,102 @@
       speaking = false;
       return true;
     } catch (e) {
-      console.warn("[RD] Fish TTS error", e);
+      statusBar("Fish error: " + (e && e.message ? e.message : e));
+      toast("Fish error: " + (e && e.message ? e.message : e), "error");
       speaking = false;
       return false;
     }
   }
-  window.speakFish = speakFishForced;
-  window.rdSpeakOut = async function (text) {
-    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
-    return speakFishForced(text);
-  };
 
-  if (!window.__RD_FETCH_FISH__) {
-    window.__RD_FETCH_FISH__ = true;
+  window.speakFish = speakFishForced;
+  window.rdSpeakOut = speakFishForced;
+  window.rdShowKaraoke = showKaraoke;
+
+  if (!window.__RD_FETCH_FISH_114__) {
+    window.__RD_FETCH_FISH_114__ = true;
     var _fetch = window.fetch.bind(window);
     window.fetch = async function (input, init) {
       var url = typeof input === "string" ? input : (input && input.url) || "";
       init = init || {};
-      if (/\/api\/fish-tts\b/.test(url) && init.method && String(init.method).toUpperCase() === "POST") {
+      if (/\/api\/fish-tts\b/.test(url)) {
+        syncFishKey();
         try {
           var body = {};
-          if (typeof init.body === "string") body = JSON.parse(init.body);
+          if (typeof init.body === "string") body = JSON.parse(init.body || "{}");
           body.reference_id = currentRef();
           body.model = body.model || "s2.1-pro-free";
           body.text = cleanText(body.text || "").slice(0, 1200);
-          init = Object.assign({}, init, {
-            body: JSON.stringify(body),
-            headers: Object.assign({}, init.headers || {}, { "Content-Type": "application/json" })
-          });
+          var headers = Object.assign({}, init.headers || {}, { "Content-Type": "application/json" });
+          var k = syncFishKey();
+          if (k) headers.Authorization = "Bearer " + k;
+          init = Object.assign({}, init, { method: "POST", body: JSON.stringify(body), headers: headers });
         } catch (e) {}
       }
-      var res = await _fetch(input, init);
-      if (/\/api\/fish-agent\b/.test(url)) {
-        try {
-          var panel = document.getElementById("rd-fish-panel");
-          if (panel) panel.classList.add("open");
-        } catch (e2) {}
-      }
-      return res;
+      return _fetch(input, init);
     };
   }
 
-  function patchSpeechSynthesis() {
-    if (!window.speechSynthesis || speechSynthesis.__rdPatched) return;
-    var origSpeak = speechSynthesis.speak.bind(speechSynthesis);
+  function patchSS() {
+    if (!window.speechSynthesis || speechSynthesis.__rd114) return;
+    var orig = speechSynthesis.speak.bind(speechSynthesis);
     speechSynthesis.speak = function (utterance) {
-      var text = utterance && utterance.text ? utterance.text : "";
-      var key = getFishKey();
-      if (key && text && text.length > 1) {
+      var text = utterance && utterance.text ? String(utterance.text) : "";
+      syncFishKey();
+      if (text && text.length > 1) {
         try { speechSynthesis.cancel(); } catch (e) {}
-        speakFishForced(text);
+        speakFishForced(text).then(function (ok) {
+          if (!ok) { try { orig(utterance); } catch (e2) {} }
+        });
         return;
       }
-      return origSpeak(utterance);
+      return orig(utterance);
     };
-    speechSynthesis.__rdPatched = true;
+    speechSynthesis.__rd114 = true;
   }
-  patchSpeechSynthesis();
-  setInterval(patchSpeechSynthesis, 2000);
+  patchSS();
+  setInterval(patchSS, 1500);
+  setInterval(syncFishKey, 1000);
 
-  setInterval(function () {
-    try {
-      currentRef();
-      var active = document.querySelector("#voiceCharBar [data-v].active, [data-voice].active");
-      if (active && window.state) {
-        state.selectedVoice = active.getAttribute("data-v") || active.getAttribute("data-voice");
+  document.addEventListener("change", function (e) {
+    if (e.target && e.target.id === "keyFish") {
+      var v = (e.target.value || "").trim();
+      if (v) {
+        try {
+          localStorage.setItem("rd_fish_key", v);
+          if (!window.state) window.state = {};
+          if (!state.keys) state.keys = {};
+          state.keys.fish = v;
+        } catch (err) {}
+        toast("Fish key tersimpan", "success");
       }
+    }
+  });
+  document.addEventListener("input", function (e) {
+    if (e.target && e.target.id === "keyFish") {
+      var v = (e.target.value || "").trim();
+      if (v) {
+        try {
+          localStorage.setItem("rd_fish_key", v);
+          if (window.state) {
+            if (!state.keys) state.keys = {};
+            state.keys.fish = v;
+          }
+        } catch (err) {}
+      }
+    }
+  });
+
+  setTimeout(function () {
+    try {
+      var saved = localStorage.getItem("rd_fish_key") || "";
+      var el = document.getElementById("keyFish");
+      if (saved && el && !el.value) el.value = saved;
+      syncFishKey();
     } catch (e) {}
-  }, 1000);
-
-  function looksLikeSession(t) {
-    return t && t.length > 60 && t.indexOf("livekit_url") >= 0 && t.indexOf("session_id") >= 0;
-  }
-  function scrub() {
-    document.querySelectorAll(".message, .msg, [class*='message']").forEach(function (msg) {
-      msg.querySelectorAll("pre, code, .content, .message-content, p, div").forEach(function (n) {
-        var t = n.textContent || "";
-        if (looksLikeSession(t)) {
-          n.textContent = "Fish Agent = voice realtime. Klik Fish Agent (kanan bawah) → Mulai, lalu bicara. Bukan lewat chat.";
-        }
-      });
-    });
-  }
-  setInterval(scrub, 800);
-
-  if (typeof window.appendMessage === "function" && !window.appendMessage.__rdFish112) {
-    var prev = window.appendMessage;
-    window.appendMessage = function (msg) {
-      try {
-        var c = msg && (msg.content || msg.text || "");
-        if (typeof c === "string" && looksLikeSession(c)) {
-          msg = Object.assign({}, msg, {
-            content: "Fish Agent bukan model chat. Klik **Fish Agent** (kanan bawah) → **Mulai**, lalu bicara lewat mic."
-          });
-          var p = document.getElementById("rd-fish-panel");
-          if (p) p.classList.add("open");
-        }
-      } catch (e2) {}
-      return prev.apply(this, arguments);
-    };
-    window.appendMessage.__rdFish112 = true;
-  }
+  }, 1500);
 
   injectStyle();
+  syncFishKey();
   currentRef();
+  console.log("[RD] voice-fix v114 active — Fish forced");
 })();
