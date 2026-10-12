@@ -1,6 +1,7 @@
-/* RD cool v1 — lights, command palette, matrix, ripple, streak */
+/* RD cool v2 — lights, command palette, matrix, ripple — no streak */
 (function () {
-  if (window.__RD_COOL_V1__) return;
+  if (window.__RD_COOL_V2__) return;
+  window.__RD_COOL_V2__ = true;
   window.__RD_COOL_V1__ = true;
 
   function injectCss() {
@@ -24,7 +25,8 @@
       "#rd-matrix.on{opacity:.22;}" +
       ".rd-ripple{position:fixed;width:12px;height:12px;border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(124,106,247,.7) 0%,transparent 70%);animation:rdRipple .6s ease-out forwards;}" +
       "@keyframes rdRipple{0%{transform:translate(-50%,-50%) scale(.4);opacity:.9}100%{transform:translate(-50%,-50%) scale(18);opacity:0}}" +
-      "#rd-streak{position:fixed;bottom:12px;right:12px;z-index:30;font:600 11px system-ui;color:#fff;background:linear-gradient(135deg,#7c6af7,#1a7f64);padding:6px 10px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.35);pointer-events:none;opacity:.9;}" +
+      "#rd-streak{display:none!important;}" +
+      "#rd-orb-secret{display:none!important;}" +
       "body.rd-konami-flash{animation:rdKonami .8s ease;}" +
       "@keyframes rdKonami{0%{filter:hue-rotate(0)}50%{filter:hue-rotate(160deg) saturate(1.4)}100%{filter:hue-rotate(0)}}";
     document.head.appendChild(st);
@@ -82,13 +84,7 @@
       }
     } },
     { id: "dev", label: "Developer event panel", run: function () { document.getElementById("rd-dev-btn")?.click(); } },
-    { id: "voice", label: "Buka Voice panel", run: function () { document.getElementById("voiceBtn")?.click(); } },
-    { id: "clear-notif", label: "Reset notifikasi musim", run: function () {
-      try {
-        Object.keys(localStorage).filter(function (k) { return k.indexOf("rd_notif_seen_") === 0; }).forEach(function (k) { localStorage.removeItem(k); });
-      } catch (e) {}
-      if (typeof showToast === "function") showToast("Notif musim di-reset", "success");
-    } }
+    { id: "voice", label: "Buka Voice panel", run: function () { document.getElementById("voiceBtn")?.click(); } }
   ];
 
   function openCmd() {
@@ -142,11 +138,7 @@
   function toggleMatrix() {
     injectCss();
     var c = document.getElementById("rd-matrix");
-    if (!c) {
-      c = document.createElement("canvas");
-      c.id = "rd-matrix";
-      document.body.appendChild(c);
-    }
+    if (!c) { c = document.createElement("canvas"); c.id = "rd-matrix"; document.body.appendChild(c); }
     matrixOn = !matrixOn;
     c.classList.toggle("on", matrixOn);
     if (!matrixOn) { if (matrixTimer) cancelAnimationFrame(matrixTimer); return; }
@@ -170,42 +162,23 @@
       matrixTimer = requestAnimationFrame(draw);
     }
     draw();
-    if (typeof showToast === "function") showToast("Matrix ON — Ctrl+K → matrix", "success");
+    if (typeof showToast === "function") showToast("Matrix ON", "success");
   }
+  window.__rdToggleMatrix = toggleMatrix;
 
-  function rippleAt(x, y) {
-    injectCss();
-    var r = document.createElement("div");
-    r.className = "rd-ripple";
-    r.style.left = x + "px";
-    r.style.top = y + "px";
-    document.body.appendChild(r);
-    setTimeout(function () { r.remove(); }, 650);
-  }
   document.addEventListener("click", function (e) {
     var t = e.target;
     if (!t || !t.closest) return;
-    if (t.closest("#sendBtn") || t.closest("button.primary")) rippleAt(e.clientX, e.clientY);
+    if (t.closest("#sendBtn") || t.closest("button.primary")) {
+      injectCss();
+      var r = document.createElement("div");
+      r.className = "rd-ripple";
+      r.style.left = e.clientX + "px";
+      r.style.top = e.clientY + "px";
+      document.body.appendChild(r);
+      setTimeout(function () { r.remove(); }, 650);
+    }
   }, true);
-
-  function updateStreak() {
-    injectCss();
-    try {
-      var today = new Date().toISOString().slice(0, 10);
-      var last = localStorage.getItem("rd_streak_last") || "";
-      var n = parseInt(localStorage.getItem("rd_streak") || "0", 10) || 0;
-      if (last !== today) {
-        var y = new Date(); y.setDate(y.getDate() - 1);
-        var yest = y.toISOString().slice(0, 10);
-        n = last === yest ? n + 1 : 1;
-        localStorage.setItem("rd_streak", String(n));
-        localStorage.setItem("rd_streak_last", today);
-      }
-      var el = document.getElementById("rd-streak");
-      if (!el) { el = document.createElement("div"); el.id = "rd-streak"; document.body.appendChild(el); }
-      el.textContent = "🔥 " + n + " hari streak";
-    } catch (e) {}
-  }
 
   var seq = [];
   var konami = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
@@ -223,10 +196,20 @@
     }
   });
 
-  function boot() { injectCss(); mountLights(); updateStreak(); }
+  function boot() {
+    injectCss();
+    mountLights();
+    var se = document.getElementById("rd-streak"); if (se) se.remove();
+    var o = document.getElementById("rd-orb-secret"); if (o) o.remove();
+  }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else setTimeout(boot, 0);
   setTimeout(boot, 800);
   setTimeout(mountLights, 2000);
+  setInterval(function () {
+    var se = document.getElementById("rd-streak"); if (se) se.remove();
+    var o = document.getElementById("rd-orb-secret"); if (o) o.remove();
+  }, 1500);
   window.addEventListener("resize", function () { if (document.getElementById("rd-xmas-lights")) mountLights(); });
+  window.addEventListener("rd-remount-lights", mountLights);
 })();
