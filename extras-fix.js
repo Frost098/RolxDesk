@@ -1,12 +1,12 @@
-/* RolxDesk extras-fix v7.0.0 — restored; Google direct + hosted */
+/* RolxDesk extras-fix v7.0.1 — trim safe + nvidia */
 (function () {
-  if (window.__RD_FIX_V681__) return;
-  window.__RD_FIX_V681__ = true;
+  if (window.__RD_FIX_V122__) return;
+  window.__RD_FIX_V122__ = true;
 
   function readNvFromStorage() {
     try {
       var solo = localStorage.getItem("rd_nvidia_key") || "";
-      if (solo && solo.trim()) return solo.trim();
+      if (solo != null && String(solo).trim()) return String(solo).trim();
       var all = JSON.parse(localStorage.getItem("rd_keys") || "{}");
       return String(all.nvidia || all.NVIDIA || all.nvidiaKey || "").trim();
     } catch (e) { return ""; }
@@ -35,8 +35,8 @@
       if (!host) return;
       host.appendChild(el);
     }
-    el.textContent = "RolxDesk patch v7.0.0 · voice/season";
-    el.setAttribute("data-rd-patch", "7.0.0");
+    el.textContent = "RolxDesk patch v7.0.1 · trim+season";
+    el.setAttribute("data-rd-patch", "7.0.1");
   }
   function currentFamily() {
     try { var el = document.getElementById("familySelect"); return el ? String(el.value || "") : ""; } catch (e) { return ""; }
