@@ -11,27 +11,96 @@
 <link rel="manifest" href="/manifest.webmanifest"/>
 <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="/icons/icon-192.svg"/>
-<style>
+<style id="rd-boot-style">
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,sans-serif}
-#rd-boot{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#070708}
-.rd-letter{font-weight:800;font-size:clamp(64px,18vw,120px);display:inline-block;transform:scale(0);opacity:0}
-.rd-letter.r{animation:a .6s cubic-bezier(.15,1.5,.35,1) .05s forwards}
-.rd-letter.d{animation:a .6s cubic-bezier(.15,1.5,.35,1) .18s forwards}
-@keyframes a{to{transform:scale(1);opacity:1}}
-#rd-boot-status{margin-top:24px;font-size:13px;color:#8b8b98}
-#rd-boot-bar{margin-top:12px;width:180px;height:3px;background:#1c1c24;border-radius:2px;overflow:hidden}
-#rd-boot-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7c6af7,#1a7f64);transition:width .2s}
+html,body{height:100%;background:#070708;color:#eee;font-family:system-ui,sans-serif;overflow:hidden}
+#rd-boot{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 40%,var(--boot-glow,#1a1530) 0%,#070708 70%);transition:opacity .45s ease}
+#rd-boot.fade{opacity:0;pointer-events:none}
+.rd-letter{font-weight:800;font-size:clamp(64px,18vw,120px);display:inline-block;transform:scale(0);opacity:0;
+  text-shadow:0 0 40px var(--boot-accent,#7c6af7),0 0 80px var(--boot-accent2,#1a7f64)}
+.rd-letter.r{animation:pop .65s cubic-bezier(.15,1.6,.35,1) .05s forwards;color:var(--boot-accent,#7c6af7)}
+.rd-letter.d{animation:pop .65s cubic-bezier(.15,1.6,.35,1) .2s forwards;color:var(--boot-accent2,#a78bfa)}
+@keyframes pop{to{transform:scale(1);opacity:1}}
+#rd-boot-sub{margin-top:14px;font:600 12px system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--boot-sub,#8b8b98);
+  opacity:0;animation:fadein .5s ease .45s forwards}
+#rd-boot-status{margin-top:18px;font-size:13px;color:#8b8b98}
+#rd-boot-bar{margin-top:12px;width:200px;height:3px;background:#1c1c24;border-radius:2px;overflow:hidden}
+#rd-boot-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--boot-accent,#7c6af7),var(--boot-accent2,#1a7f64));transition:width .2s}
+#rd-boot-fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#rd-boot-fx i{position:absolute;border-radius:50%;opacity:.35;animation:float 9s linear infinite}
+@keyframes float{0%{transform:translateY(110vh) scale(.4);opacity:0}10%{opacity:.4}90%{opacity:.25}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+@keyframes fadein{to{opacity:1}}
+body.boot-halloween{--boot-accent:#f97316;--boot-accent2:#7c3aed;--boot-glow:#2a1020;--boot-sub:#fdba74}
+body.boot-halloween #rd-boot{background:radial-gradient(ellipse at 50% 30%,#3b0a1a 0%,#070708 65%)}
+body.boot-leif{--boot-accent:#2dd4bf;--boot-accent2:#0d9488;--boot-glow:#0a1a18;--boot-sub:#99f6e4}
+body.boot-xmas{--boot-accent:#ef4444;--boot-accent2:#22c55e;--boot-glow:#1a0a0a;--boot-sub:#fca5a5}
+body.boot-ri{--boot-accent:#e11d48;--boot-accent2:#f8fafc;--boot-glow:#1a0a10;--boot-sub:#fda4af}
+body.boot-lebaran{--boot-accent:#f8fafc;--boot-accent2:#4ade80;--boot-glow:#0a120c;--boot-sub:#bbf7d0}
 </style>
 <script>
 window.__RD_DEFERRED_INSTALL=null;
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__RD_DEFERRED_INSTALL=e;});
+(function seasonBoot(){
+  var d=new Date(), m=d.getMonth()+1, day=d.getDate(), h=d.getHours();
+  var cls="";
+  if((m===10&&day>=30)||(m===11&&day<=1)) cls="boot-halloween";
+  else if(m===10&&day>=9&&day<=10) cls="boot-leif";
+  else if(m===12&&day>=20&&day<=27) cls="boot-xmas";
+  else if(m===8&&day===17) cls="boot-ri";
+  else if((m===3&&day>=20&&day<=22)||(m===2&&day>=18)||(m===3&&day<=19&&(h>=18||h<5))) cls="boot-lebaran";
+  window.__RD_BOOT_CLASS=cls;
+  try{ if(cls) document.documentElement.classList.add(cls); }catch(e){}
+})();
 </script>
 </head>
 <body>
-<div id="rd-boot"><div><span class="rd-letter r">R</span><span class="rd-letter d">D</span></div>
-<div id="rd-boot-status">Memuat…</div><div id="rd-boot-bar"><i id="rd-boot-fill"></i></div></div>
+<script>try{ if(window.__RD_BOOT_CLASS) document.body.classList.add(window.__RD_BOOT_CLASS); }catch(e){}</script>
+<div id="rd-boot">
+  <div id="rd-boot-fx" aria-hidden="true"></div>
+  <div><span class="rd-letter r">R</span><span class="rd-letter d">D</span></div>
+  <div id="rd-boot-sub">RolxDesk</div>
+  <div id="rd-boot-status">Memuat…</div>
+  <div id="rd-boot-bar"><i id="rd-boot-fill"></i></div>
+</div>
 <script>
+(function bootFx(){
+  var fx=document.getElementById("rd-boot-fx");
+  if(!fx) return;
+  var cls=window.__RD_BOOT_CLASS||"";
+  var colors=cls==="boot-halloween"?["#f97316","#7c3aed","#fbbf24"]:
+    cls==="boot-xmas"?["#ef4444","#22c55e","#f8fafc"]:
+    cls==="boot-ri"?["#e11d48","#ffffff","#e11d48"]:
+    cls==="boot-leif"?["#2dd4bf","#99f6e4","#0d9488"]:
+    ["#7c6af7","#a78bfa","#1a7f64"];
+  var sub=document.getElementById("rd-boot-sub");
+  if(sub){
+    if(cls==="boot-halloween") sub.textContent="Halloween · Scaredy Pants";
+    else if(cls==="boot-leif") sub.textContent="Leif Erikson Day";
+    else if(cls==="boot-xmas") sub.textContent="Season of Lights";
+    else if(cls==="boot-ri") sub.textContent="17 Agustus · Merah Putih";
+    else if(cls==="boot-lebaran") sub.textContent="Lebaran / Takjil";
+  }
+  for(var i=0;i<16;i++){
+    var el=document.createElement("i");
+    var sz=3+Math.random()*8;
+    el.style.width=sz+"px"; el.style.height=sz+"px";
+    el.style.left=(Math.random()*100)+"%";
+    el.style.background=colors[i%colors.length];
+    el.style.animationDelay=(Math.random()*8)+"s";
+    el.style.animationDuration=(7+Math.random()*5)+"s";
+    fx.appendChild(el);
+  }
+  if(cls==="boot-halloween" && Math.random()<0.35){
+    setTimeout(function(){
+      var f=document.createElement("div");
+      f.style.cssText="position:fixed;inset:0;z-index:100000;background:#000;opacity:0;pointer-events:none;transition:opacity .08s";
+      document.body.appendChild(f);
+      f.style.opacity="0.85";
+      setTimeout(function(){ f.style.opacity="0"; setTimeout(function(){ f.remove(); },200); },120);
+    }, 400);
+  }
+})();
 (async function(){
   var statusEl=document.getElementById("rd-boot-status"),fill=document.getElementById("rd-boot-fill"),t0=Date.now();
   function status(m){if(statusEl)statusEl.textContent=m}
@@ -40,20 +109,57 @@ window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();win
     try{
       var regs=await navigator.serviceWorker.getRegistrations();
       for(var i=0;i<regs.length;i++){try{await regs[i].update();}catch(e){}}
-      await navigator.serviceWorker.register("/sw.js?v=121");
+      await navigator.serviceWorker.register("/sw.js?v=122");
     }catch(e){}
   }
   try{
     var n=8,b64="";
-    for(var i=0;i<n;i++){status("Modul "+(i+1)+"/"+n);progress((i/n)*80);var r=await fetch("./ui.p"+i+".b64?v="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("ui.p"+i);b64+=(await r.text()).replace(/\s+/g,"")}
+    for(var i=0;i<n;i++){
+      status("Modul "+(i+1)+"/"+n);
+      progress((i/n)*80);
+      var r=await fetch("./ui.p"+i+".b64?v="+Date.now(),{cache:"no-store"});
+      if(!r.ok)throw new Error("ui.p"+i);
+      b64+=(await r.text()).replace(/\s+/g,"");
+    }
     if(b64.length%4!==0)b64+="=".repeat((4-b64.length%4)%4);
-    var raw=atob(b64),bin=new Uint8Array(raw.length);for(var j=0;j<raw.length;j++)bin[j]=raw.charCodeAt(j);
+    var raw=atob(b64),bin=new Uint8Array(raw.length);
+    for(var j=0;j<raw.length;j++)bin[j]=raw.charCodeAt(j);
     var html=await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+
+    html=html.replace(
+      /function maybeUpdateTitle\(session, userText\) \{\s*if \(!session \|\| !userText\) return;\s*if \(session\.titleUpdates == null\) session\.titleUpdates = 0;\s*if \(session\.titleUpdates >= 2\) return;\s*\/\/ abaikan sapaan pendek\s*const t = userText\.trim\(\);/,
+      "function maybeUpdateTitle(session, userText) {\n"+
+      "  if (!session || userText == null || userText === \"\") return;\n"+
+      "  if (session.titleUpdates == null) session.titleUpdates = 0;\n"+
+      "  if (session.titleUpdates >= 2) return;\n"+
+      "  const t = String(typeof userText === \"object\" ? (userText.content || userText.text || userText.title || \"\") : userText).trim();\n"+
+      "  if (!t) return;"
+    );
+    html=html.replace(
+      /if \(t && t\.trim\(\)\) \{\s*s\.title = t\.trim\(\)\.slice\(0, 60\);/g,
+      "if (t != null && String(t).trim()) {\n    s.title = String(t).trim().slice(0, 60);"
+    );
+    html=html.replace(/const t = userText\.trim\(\);/g,
+      "const t = String(typeof userText === \"object\" && userText ? (userText.content || userText.text || \"\") : (userText || \"\")).trim();");
+    html=html.replace(/await handleVoiceUserSpeech\(finalText\.trim\(\)\);/g,
+      "await handleVoiceUserSpeech(String(finalText||\"\").trim());");
+    html=html.replace(/if \(finalText\.trim\(\) && state\.voiceActive\)/g,
+      "if (String(finalText||\"\").trim() && state.voiceActive)");
+
     html=html.replace(/<script[^>]*(extras(?:-ui|-fix|-hotfix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi,"");
-    html=html.replace(/<\/body>/i,'<script src="./extras.js?v=121"><\/script><script src="./extras-ui.js?v=121"><\/script><script src="./extras-fix.js?v=121"><\/script><script src="./extras-hotfix.js?v=121"><\/script><script src="./extras-cisypi.js?v=121"><\/script><script src="./extras-v11.js?v=121"><\/script><script src="./extras-v12.js?v=121"><\/script><script src="./extras-voice.js?v=121"><\/script><script src="./extras-voice-fix.js?v=121"><\/script><script src="./extras-voice-mobile.js?v=121"><\/script><script src="./extras-fish-agent.js?v=121"><\/script><script src="./extras-season.js?v=121"><\/script><script src="./extras-cool.js?v=121"><\/script><script src="./extras-mobile-secret.js?v=121"><\/script><script src="./extras-fun-tools.js?v=121"><\/script><script src="./extras-install.js?v=121"><\/script></body>');
-    await new Promise(function(res){setTimeout(res,Math.max(0,700-(Date.now()-t0)))});
-    progress(100);document.open();document.write(html);document.close();
-  }catch(err){status("Gagal: "+(err&&err.message?err.message:err));console.error(err)}
+    html=html.replace(/<\/body>/i,
+      '<script src="./extras.js?v=122"><\/script><script src="./extras-ui.js?v=122"><\/script><script src="./extras-fix.js?v=122"><\/script><script src="./extras-hotfix.js?v=122"><\/script><script src="./extras-cisypi.js?v=122"><\/script><script src="./extras-v11.js?v=122"><\/script><script src="./extras-v12.js?v=122"><\/script><script src="./extras-voice.js?v=122"><\/script><script src="./extras-voice-fix.js?v=122"><\/script><script src="./extras-voice-mobile.js?v=122"><\/script><script src="./extras-fish-agent.js?v=122"><\/script><script src="./extras-season.js?v=122"><\/script><script src="./extras-cool.js?v=122"><\/script><script src="./extras-mobile-secret.js?v=122"><\/script><script src="./extras-fun-tools.js?v=122"><\/script><script src="./extras-install.js?v=122"><\/script></body>');
+
+    await new Promise(function(res){setTimeout(res,Math.max(0,1200-(Date.now()-t0)))});
+    progress(100);
+    status("Siap");
+    document.open();
+    document.write(html);
+    document.close();
+  }catch(err){
+    status("Gagal: "+(err&&err.message?err.message:err));
+    console.error(err);
+  }
 })();
 </script>
 </body>
