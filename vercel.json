@@ -2,6 +2,7 @@
   "version": 2,
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/api/fish-webhook", "destination": "/api/fish-agent?mode=webhook" },
     { "source": "/api/hosted-models", "destination": "/api/hosted-chat" },
     { "source": "/api/yt-channel", "destination": "/api/yt-search" },
     { "source": "/api/nvidia-chat", "destination": "/api/openai-compat" },
@@ -15,7 +16,7 @@
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-RD-Build", "value": "v66-fn9" }
+        { "key": "X-RD-Build", "value": "v120" }
       ]
     }
   ]
