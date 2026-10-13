@@ -40,7 +40,7 @@ window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();win
     try{
       var regs=await navigator.serviceWorker.getRegistrations();
       for(var i=0;i<regs.length;i++){try{await regs[i].update();}catch(e){}}
-      await navigator.serviceWorker.register("/sw.js?v=119");
+      await navigator.serviceWorker.register("/sw.js?v=120");
     }catch(e){}
   }
   try{
@@ -50,7 +50,7 @@ window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();win
     var raw=atob(b64),bin=new Uint8Array(raw.length);for(var j=0;j<raw.length;j++)bin[j]=raw.charCodeAt(j);
     var html=await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
     html=html.replace(/<script[^>]*(extras(?:-ui|-fix|-hotfix)?\.js|jsdelivr\.net\/gh\/Frost098\/RolxDesk)[^>]*><\/script>/gi,"");
-    html=html.replace(/<\/body>/i,'<script src="./extras.js?v=119"><\/script><script src="./extras-ui.js?v=119"><\/script><script src="./extras-fix.js?v=119"><\/script><script src="./extras-hotfix.js?v=119"><\/script><script src="./extras-cisypi.js?v=119"><\/script><script src="./extras-v11.js?v=119"><\/script><script src="./extras-v12.js?v=119"><\/script><script src="./extras-voice.js?v=119"><\/script><script src="./extras-voice-fix.js?v=119"><\/script><script src="./extras-voice-mobile.js?v=119"><\/script><script src="./extras-fish-agent.js?v=119"><\/script><script src="./extras-season.js?v=119"><\/script><script src="./extras-cool.js?v=119"><\/script><script src="./extras-mobile-secret.js?v=119"><\/script><script src="./extras-fun-tools.js?v=119"><\/script><script src="./extras-install.js?v=119"><\/script></body>');
+    html=html.replace(/<\/body>/i,'<script src="./extras.js?v=120"><\/script><script src="./extras-ui.js?v=120"><\/script><script src="./extras-fix.js?v=120"><\/script><script src="./extras-hotfix.js?v=120"><\/script><script src="./extras-cisypi.js?v=120"><\/script><script src="./extras-v11.js?v=120"><\/script><script src="./extras-v12.js?v=120"><\/script><script src="./extras-voice.js?v=120"><\/script><script src="./extras-voice-fix.js?v=120"><\/script><script src="./extras-voice-mobile.js?v=120"><\/script><script src="./extras-fish-agent.js?v=120"><\/script><script src="./extras-season.js?v=120"><\/script><script src="./extras-cool.js?v=120"><\/script><script src="./extras-mobile-secret.js?v=120"><\/script><script src="./extras-fun-tools.js?v=120"><\/script><script src="./extras-install.js?v=120"><\/script></body>');
     await new Promise(function(res){setTimeout(res,Math.max(0,700-(Date.now()-t0)))});
     progress(100);document.open();document.write(html);document.close();
   }catch(err){status("Gagal: "+(err&&err.message?err.message:err));console.error(err)}
