@@ -1,16 +1,12 @@
-/* RD Install — klik = langsung prompt install PWA */
+/* RD Install v119 — native PWA prompt on click */
 (function () {
-  if (window.__RD_INSTALL_V2__) return;
-  window.__RD_INSTALL_V2__ = true;
+  if (window.__RD_INSTALL_V119__) return;
+  window.__RD_INSTALL_V119__ = true;
 
-  var VERSION = "v6.6.1+118";
+  var VERSION = "v6.6.1+119";
 
-  function getPrompt() {
-    return window.__RD_DEFERRED_INSTALL || null;
-  }
-  function setPrompt(p) {
-    window.__RD_DEFERRED_INSTALL = p || null;
-  }
+  function getPrompt() { return window.__RD_DEFERRED_INSTALL || null; }
+  function setPrompt(p) { window.__RD_DEFERRED_INSTALL = p || null; }
 
   function injectCss() {
     if (document.getElementById("rd-install-css")) return;
@@ -20,9 +16,10 @@
       "#rd-install-card{margin:14px 0 18px;padding:14px;border-radius:14px;" +
       "border:1px solid rgba(124,106,247,.4);background:linear-gradient(145deg,rgba(124,106,247,.12),rgba(26,127,100,.08));}" +
       "#rd-install-card .rd-inst-row{display:flex;gap:12px;align-items:center;}" +
-      "#rd-install-card .rd-inst-icon{width:48px;height:48px;border-radius:12px;flex-shrink:0;" +
+      "#rd-install-card .rd-inst-icon{width:48px;height:48px;border-radius:12px;flex-shrink:0;object-fit:cover;" +
       "background:#12141a;display:grid;place-items:center;font:800 18px system-ui;color:#f4f4f6;" +
-      "box-shadow:0 4px 14px rgba(0,0,0,.35);}" +
+      "box-shadow:0 4px 14px rgba(0,0,0,.35);overflow:hidden;}" +
+      "#rd-install-card .rd-inst-icon img{width:100%;height:100%;display:block;}" +
       "#rd-install-card .rd-inst-text{flex:1;min-width:0;}" +
       "#rd-install-card .rd-inst-text strong{display:block;font:700 14px system-ui;color:#fff;margin-bottom:2px;}" +
       "#rd-install-card .rd-inst-text span{font:12px system-ui;color:#a8a4b8;line-height:1.35;}" +
@@ -37,10 +34,7 @@
   }
 
   function isStandalone() {
-    return (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true
-    );
+    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
   }
 
   function toast(m, t) {
@@ -69,27 +63,25 @@
         toast("Install gagal: " + (e && e.message ? e.message : e), "error");
       }
     }
-    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-      toast("iOS: Share → Add to Home Screen", "error");
-    } else {
-      toast("Browser belum siap install. Hard refresh di Chrome, buka Settings lagi.", "error");
-    }
+    toast("Dialog belum siap. Tutup tab → buka lagi di Chrome → Settings → Install.", "error");
   }
 
   function updateCardState() {
-    var card = document.getElementById("rd-install-card");
-    if (!card) return;
     var btn = document.getElementById("rdInstallBtn");
-    var hint = card.querySelector(".rd-inst-hint");
+    var hint = document.querySelector("#rd-install-card .rd-inst-hint");
+    if (!btn) return;
     if (isStandalone()) {
-      if (btn) { btn.textContent = "Sudah terpasang"; btn.disabled = true; }
+      btn.textContent = "Sudah terpasang";
+      btn.disabled = true;
       if (hint) hint.textContent = "RD sedang berjalan sebagai aplikasi.";
     } else if (getPrompt()) {
-      if (btn) { btn.textContent = "Install RolxDesk"; btn.disabled = false; }
+      btn.textContent = "Install RolxDesk";
+      btn.disabled = false;
       if (hint) hint.textContent = "Klik sekali — dialog install langsung muncul.";
     } else {
-      if (btn) { btn.textContent = "Install RolxDesk"; btn.disabled = false; }
-      if (hint) hint.textContent = "Klik untuk install. Kalau dialog tidak muncul, hard refresh di Chrome lalu buka Settings lagi.";
+      btn.textContent = "Install RolxDesk";
+      btn.disabled = false;
+      if (hint) hint.textContent = "Menunggu browser… Kalau belum, hard refresh (tarik turun) lalu buka Settings lagi.";
     }
   }
 
@@ -98,13 +90,17 @@
     var body = document.querySelector("#settingsModal .modal-body");
     if (!body) return;
 
+    var old = document.getElementById("rd-install-card");
+    if (old && !old.dataset.v119) old.remove();
+
     if (!document.getElementById("rd-install-card")) {
       var card = document.createElement("div");
       card.id = "rd-install-card";
+      card.dataset.v119 = "1";
       card.innerHTML =
         '<div class="section-title" style="margin:0 0 10px">Download / Install RD</div>' +
         '<div class="rd-inst-row">' +
-        '  <div class="rd-inst-icon" aria-hidden="true">RD</div>' +
+        '  <div class="rd-inst-icon"><img src="/icons/icon-192.svg" alt="RD" width="48" height="48" onerror="this.parentNode.textContent=\'RD\'"/></div>' +
         '  <div class="rd-inst-text">' +
         "    <strong>RolxDesk App</strong>" +
         "    <span>Pasang ke HP / PC — kebuka seperti aplikasi.</span>" +
@@ -127,12 +123,13 @@
       });
     }
 
-    if (!document.getElementById("rd-settings-version")) {
-      var ver = document.createElement("div");
+    var ver = document.getElementById("rd-settings-version");
+    if (!ver) {
+      ver = document.createElement("div");
       ver.id = "rd-settings-version";
-      ver.textContent = "RolxDesk " + VERSION;
       body.appendChild(ver);
     }
+    ver.textContent = "RolxDesk " + VERSION;
     updateCardState();
   }
 
@@ -140,6 +137,7 @@
     e.preventDefault();
     setPrompt(e);
     updateCardState();
+    console.log("[RD] beforeinstallprompt captured");
   });
   window.addEventListener("appinstalled", function () {
     setPrompt(null);
@@ -165,5 +163,5 @@
     if (tries > 50) clearInterval(iv);
   }, 400);
 
-  setTimeout(buildCard, 1200);
+  setTimeout(buildCard, 1000);
 })();
