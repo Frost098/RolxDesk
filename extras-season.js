@@ -1,6 +1,7 @@
-/* RD season v8 — modal fixed + fish family */
+/* RD season v9 — splash loading + modal fixed + fish family */
 (function () {
-  if (window.__RD_SEASON_V8__) return;
+  if (window.__RD_SEASON_V9__) return;
+  window.__RD_SEASON_V9__ = true;
   window.__RD_SEASON_V8__ = true;
   window.__RD_SEASON_V7__ = true;
   window.__RD_SEASON_V6__ = true;
@@ -309,8 +310,47 @@
     window.callModel.__rdFish = true;
   }
 
+  function splash(ev) {
+    if (window.__RD_SPLASHed) return;
+    window.__RD_SPLASHed = 1;
+    if (document.getElementById("rd-season-splash")) return;
+    var layer = document.createElement("div");
+    layer.id = "rd-season-splash";
+    layer.setAttribute("aria-hidden", "true");
+    var title = ev ? ev.title : "RolxDesk";
+    var accent = ev ? ev.accent : "#7c6af7";
+    var accent2 = ev ? ev.accent2 : "#a78bfa";
+    var bg = ev ? ev.bg : "#070708";
+    var glow = ev ? ev.bootGlow : "rgba(124,106,247,.45)";
+    layer.innerHTML = "<style>" +
+      "#rd-season-splash{position:fixed;inset:0;z-index:2147483646;display:flex;flex-direction:column;align-items:center;justify-content:center;" +
+      "background:radial-gradient(ellipse at 50% 40%," + glow + " 0%," + bg + " 70%);transition:opacity .5s ease;pointer-events:none}" +
+      "#rd-season-splash .rd-sp-mark{font:800 clamp(56px,16vw,100px)/1 system-ui;letter-spacing:-.04em;" +
+      "background:linear-gradient(135deg," + accent + "," + accent2 + ");-webkit-background-clip:text;background-clip:text;color:transparent;" +
+      "filter:drop-shadow(0 0 28px " + glow + ");animation:rdSpPop .7s cubic-bezier(.15,1.5,.35,1) both}" +
+      "#rd-season-splash .rd-sp-sub{margin-top:12px;font:600 12px system-ui;letter-spacing:.14em;text-transform:uppercase;color:" + accent + ";opacity:.85}" +
+      "@keyframes rdSpPop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}" +
+      "</style><div class='rd-sp-mark'>RD</div><div class='rd-sp-sub'></div>";
+    document.body.appendChild(layer);
+    var sub = layer.querySelector(".rd-sp-sub");
+    if (sub) sub.textContent = title;
+    if (ev && ev.id && String(ev.id).indexOf("halloween") >= 0 && Math.random() < 0.4) {
+      setTimeout(function () {
+        layer.style.background = "#000";
+        setTimeout(function () {
+          layer.style.background = "radial-gradient(ellipse at 50% 40%," + glow + " 0%," + bg + " 70%)";
+        }, 100);
+      }, 280);
+    }
+    setTimeout(function () {
+      layer.style.opacity = "0";
+      setTimeout(function () { try { layer.remove(); } catch (e) {} }, 520);
+    }, 1600);
+  }
+
   function boot() {
     injectBaseCss();
+    try { splash(activeEvent()); } catch (e) {}
     ensureFishFamily();
     injectDevBtn();
     patchCallModelFish();
