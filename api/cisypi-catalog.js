@@ -18,7 +18,19 @@ export default async function handler(req, res) {
       signal: AbortSignal.timeout(18000)
     });
     const raw = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) return res.status(502).json({ error: "CisyPi catalog HTTP " + upstream.status });
+    if (!upstream.ok) {
+      const blocked = upstream.status === 401 || upstream.status === 403;
+      return res.status(blocked ? 503 : 502).json({
+        ok: false,
+        retryable: true,
+        code: blocked ? "UPSTREAM_BLOCKED" : "UPSTREAM_ERROR",
+        error: blocked
+          ? "Katalog CisyPi sedang diblokir oleh host publiknya. Coba lagi nanti atau buka CisyPi langsung."
+          : "CisyPi catalog HTTP " + upstream.status,
+        status: upstream.status,
+        openUrl: CISYPI_ORIGIN
+      });
+    }
     let rows = raw?.result?.data?.json;
     if (!Array.isArray(rows)) return res.status(502).json({ error: "Format katalog CisyPi tidak dikenali" });
     let items = rows.map((row) => normalizeRow(row)).filter(Boolean);

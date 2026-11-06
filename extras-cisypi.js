@@ -61,8 +61,22 @@
     if (autoplay && items.length === 1) openItem(items[0]);
     return "CisyPi menemukan " + items.length + " kandidat. Pilih video di panel.";
   }
-  window.playCisyPi = function (query) { return search(query, true).catch(function (e) { if (typeof showToast === "function") showToast(e.message, "error"); return "CisyPi gagal: " + e.message; }); };
-  window.searchCisyPi = function (query) { return search(query, false); };
+  function showUnavailable(message, query) {
+    var panel = ensureUi(), list = document.getElementById("rd-cp-list");
+    document.getElementById("rd-cp-title").textContent = "CisyPi · tidak tersedia";
+    list.style.display = "block";
+    list.innerHTML = '<div style="padding:14px;color:#f1c7c7;line-height:1.45"><strong>Katalog CisyPi sedang tidak bisa diakses.</strong><br>' + esc(message) + '<br><small>Query: ' + esc(query || "") + '</small><br><button type="button" id="rd-cp-retry" style="margin-top:10px">Coba lagi</button> <a href="https://cisypistream-mktfzcae.manus.space/" target="_blank" rel="noopener">Buka CisyPi</a></div>';
+    panel.classList.add("show");
+    var retry = document.getElementById("rd-cp-retry");
+    if (retry) retry.onclick = function () { search(query, true).catch(function (err) { showUnavailable(err.message, query); }); };
+  }
+  function recoverCisyPi(query, e) {
+    showUnavailable(e && e.message ? e.message : String(e), query);
+    if (typeof showToast === "function") showToast("CisyPi belum bisa diakses", "error");
+    return "CisyPi belum tersedia: " + (e && e.message ? e.message : String(e));
+  }
+  window.playCisyPi = function (query) { return search(query, true).catch(function (e) { return recoverCisyPi(query, e); }); };
+  window.searchCisyPi = function (query) { return search(query, false).catch(function (e) { return recoverCisyPi(query, e); }); };
 
   function wants(text) { return /cisy\s*pi|cisypi|terdaftar di cisy|video cisy/i.test(String(text || "")); }
   function getQuery(text) {
